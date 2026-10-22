@@ -15,7 +15,7 @@ for (const name of releaseFiles) {
 assert.match(await read('LICENSE'), /^MIT License/);
 assert.match(await read('vendor/COPYING.LESSER'), /GNU LESSER GENERAL PUBLIC LICENSE/);
 assert.match(await read('vendor/COPYING'), /GNU GENERAL PUBLIC LICENSE/);
-const html = await read('Narration_Tempo.html');
+const html = await read('index.html');
 const { version } = JSON.parse(await read('package.json'));
 assert(html.includes(`<title>Narration Tempo v${version}</title>`));
 assert(html.includes(`<meta name="application-version" content="${version}" />`));

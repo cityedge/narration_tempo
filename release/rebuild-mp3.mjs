@@ -9,8 +9,8 @@ import { fileURLToPath } from 'node:url';
 import { resolve, join } from 'node:path';
 
 const support = new URL('./', import.meta.url);
-const inputHtml = new URL('../Narration_Tempo.html', support);
-const outputHtml = new URL('../Narration_Tempo.rebuilt.html', support);
+const inputHtml = new URL('../index.html', support);
+const outputHtml = new URL('../index.rebuilt.html', support);
 if (!process.argv[2]) throw Error('Pass the extracted Browser Media I/O v0.5.0 source directory. See SOURCES.md.');
 const upstream = resolve(process.argv[2]);
 const pkg = JSON.parse(await readFile(join(upstream, 'package.json'), 'utf8'));
@@ -19,7 +19,7 @@ let html = await readFile(inputHtml, 'utf8');
 const begin = '/* BrowserMp3 bundle:begin */', end = '/* BrowserMp3 bundle:end */';
 const start = html.indexOf(begin), finish = html.indexOf(end);
 if (start < 0 || finish < start || html.indexOf(begin, start + 1) !== -1 || html.indexOf(end, finish + 1) !== -1)
-  throw Error('Expected exactly one replaceable MP3 bundle in Narration_Tempo.html.');
+  throw Error('Expected exactly one replaceable MP3 bundle in index.html.');
 await copyFile(new URL('mp3-async.ts', support), join(upstream, 'src/mp3.ts'));
 execFileSync(process.execPath, ['node_modules/typescript/bin/tsc', '-p', 'tsconfig.build.json'], {
   cwd: upstream, stdio: 'inherit',

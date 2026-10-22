@@ -1,13 +1,23 @@
 # Narration Tempo
 
 長尺ナレーションの音量差を整え、声の高さを保って速度を変え、WAV／MP3として保存するローカルアプリです。
-`Narration_Tempo.html` をChromeで開いて使用します。動作するアプリは単一HTMLです。サーバー、インターネット、Python、Node.js、追加インストールは利用時に不要です。
+`index.html` をChromeで開いて使用します。動作するアプリは単一HTMLです。サーバー、インターネット、Python、Node.js、追加インストールは利用時に不要です。
 
 **アプリ本体はMIT、同梱MP3エンコーダーはLGPL-3.0です。** 詳細は [LICENSE](LICENSE) と [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) を参照してください。利用者向けZIPには文書・ライセンスとアプリ固有の小さな補助ファイルを添付し、元ライブラリのソースはv0.5.0 Releaseから別途取得する方式です。ライセンス本文をアプリ画面に表示する機能はありません。
 
-Offline narration leveling and pitch-preserving tempo adjustment, with WAV and MP3 export. Open `Narration_Tempo.html` in Chrome; no server, internet connection or installation is required. Switch the UI to English in the upper-right corner. The application is MIT licensed; the bundled MP3 encoder remains LGPL-3.0. The user ZIP contains notices, licenses and application-specific rebuild support; upstream source is available separately from the v0.5.0 Release. See [SOURCES.md](SOURCES.md) for building and redistribution.
+Offline narration leveling and pitch-preserving tempo adjustment, with WAV and MP3 export. Open `index.html` in Chrome; no server, internet connection or installation is required. Switch the UI to English in the upper-right corner. The application is MIT licensed; the bundled MP3 encoder remains LGPL-3.0. The user ZIP contains notices, licenses and application-specific rebuild support; upstream source is available separately from the v0.5.0 Release. See [SOURCES.md](SOURCES.md) for building and redistribution.
 
-アプリのバージョンは `package.json` の `version` で管理し、ビルド時に画面、ページタイトル、HTMLのメタデータへ自動で埋め込みます。現在は **v0.1.0** です。
+アプリのバージョンは `package.json` の `version` で管理し、ビルド時に画面、ページタイトル、HTMLのメタデータへ自動で埋め込みます。現在は **v0.1.1** です。
+
+## GitHub Pagesで公開する場合
+
+`narration-tempo-repository/` の中身をリポジトリのルートに配置します。ビルド済みの `index.html` と `.nojekyll` を含むので、GitHub上でNode.jsのビルドは不要です。
+
+GitHubの **Settings → Pages → Build and deployment** で、**Deploy from a branch** を選び、公開するブランチ（例: `main`）と **/ (root)** を指定して保存します。公開URLはPages画面に表示されます。
+
+`src/index.html` はビルド前のテンプレートです。配置するのは公開用フォルダ直下の `index.html` です。利用者向けZIPも `index.html` をローカルで開く仕様です。旧ローカル名 `Narration_Tempo.html` はビルド時に同じ内容を生成しますが、配布物には含めません。
+
+For GitHub Pages, upload the contents of `narration-tempo-repository/` to the repository root, including the built `index.html` and `.nojekyll`. In Settings → Pages, select Deploy from a branch, your publishing branch (for example `main`), and / (root). No build on GitHub is needed. Use the published URL shown there.
 
 ## 使い方
 

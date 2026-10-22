@@ -7,7 +7,7 @@ import vm from "node:vm";
 const root = new URL("./", import.meta.url),
   out = new URL("tests/tmp/", root);
 await mkdir(out, { recursive: true });
-const html = await readFile(new URL("Narration_Tempo.html", root), "utf8");
+const html = await readFile(new URL("index.html", root), "utf8");
 const { version } = JSON.parse(await readFile(new URL("package.json", root), "utf8"));
 const engine = await readFile(new URL("src/engine.js", root), "utf8");
 new vm.Script(engine);

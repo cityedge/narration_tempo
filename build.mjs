@@ -20,6 +20,8 @@ for (const [tag, file] of [
   if (/<\/script/i.test(source)) throw Error("Unsafe script delimiter");
   html = html.replace("/*__" + tag + "__*/", () => source);
 }
-const path = new URL("Narration_Tempo.html", root);
-await writeFile(path, html, "utf8");
-console.log(fileURLToPath(path));
+// The published entry point is index.html. Keep the former local filename in
+// sync for existing bookmarks; the publication allowlist includes only index.html.
+for (const name of ["index.html", "Narration_Tempo.html"])
+  await writeFile(new URL(name, root), html, "utf8");
+console.log(fileURLToPath(new URL("index.html", root)));

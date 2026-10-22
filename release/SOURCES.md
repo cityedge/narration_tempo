@@ -21,12 +21,12 @@ Use that asset rather than the MP3 runtime ZIP or GitHub's automatically generat
 
 ## Narration Tempo側の変更 / Application-specific changes
 
-アプリ固有のHTML・CSS・JavaScriptは `Narration_Tempo.html` 内に非圧縮で含まれています。
+アプリ固有のHTML・CSS・JavaScriptは `index.html` 内に非圧縮で含まれています。
 元ライブラリに追加した非同期PCM読み込みAPIのソースは [source-support/mp3-async.ts](source-support/mp3-async.ts)、
 再ビルドとHTMLへの再結合は [source-support/rebuild-mp3.mjs](source-support/rebuild-mp3.mjs) に含まれます。
 これらの追加部分はMITです。エンコーダー自体はv0.5.0から変更していません。
 
-The application's HTML/CSS/JavaScript is included unminified in `Narration_Tempo.html`.
+The application's HTML/CSS/JavaScript is included unminified in `index.html`.
 The additional asynchronous PCM reader is supplied as `source-support/mp3-async.ts`, with a rebuild/relink script.
 These application-specific additions are MIT; the LGPL encoder is unchanged from v0.5.0.
 
@@ -44,14 +44,14 @@ npm ci --prefix ../browser-media-io-sources-0.5.0
 node source-support/rebuild-mp3.mjs ../browser-media-io-sources-0.5.0
 ```
 
-結果は `Narration_Tempo.rebuilt.html` に保存します。元のHTMLは上書きしません。
+結果は `index.rebuilt.html` に保存します。元のHTMLは上書きしません。
 補助スクリプトは、上流作業コピーの `src/mp3.ts` を同梱のラッパーに置き換えてからビルドします。
 ラッパーを変更する場合は `source-support/mp3-async.ts` を編集します。
 エンコーダーを変更する場合は、上流の `third_party/lamejs/extensions/` や
 `scripts/prepare-lamejs.mjs` を編集して同じコマンドを実行します。
 元の `source.tar.gz` を変更する場合は、そのスクリプトのハッシュ検査も更新してください。
 
-The script writes `Narration_Tempo.rebuilt.html` without overwriting the original HTML. It replaces the upstream
+The script writes `index.rebuilt.html` without overwriting the original HTML. It replaces the upstream
 working copy's `src/mp3.ts` with the supplied wrapper before building. Edit the supplied wrapper for wrapper changes;
 edit the upstream encoder extensions or preparation script for encoder changes. If modifying the base source archive,
 also update its hash check. No signing key is required. The resulting app still works offline as one HTML file.

@@ -1,8 +1,8 @@
 // Copyright (c) 2026 cityedge. MIT; see LICENSE.
 // Explicit publication allowlist. Never recursively copy this workspace.
 export const releaseFiles = [
-  '.gitignore', '.gitattributes', 'LICENSE', 'README.md', 'THIRD_PARTY_NOTICES.md',
-  'SOURCES.md', 'docs/VALIDATION.md', 'Narration_Tempo.html', 'package.json', 'package-lock.json',
+  '.gitignore', '.gitattributes', '.nojekyll', 'LICENSE', 'README.md', 'THIRD_PARTY_NOTICES.md',
+  'SOURCES.md', 'docs/VALIDATION.md', 'index.html', 'package.json', 'package-lock.json',
   'build.mjs', 'package.mjs', 'release-files.mjs', 'test-release.mjs',
   'test.mjs', 'test-dsp.mjs', 'tests/fixtures/wsola-v1.2.js',
   'src/index.html', 'src/style.css', 'src/app.js', 'src/engine.js',
@@ -29,7 +29,7 @@ export const releaseFiles = [
 // User-facing archive: no encoder source archive, test suite or installed tools.
 // The small application-specific wrapper changes and relinking script remain.
 export const runtimeFiles = [
-  ['Narration_Tempo.html', 'Narration_Tempo.html'],
+  ['index.html', 'index.html'],
   ['release/README.md', 'README.md'],
   ['release/SOURCES.md', 'SOURCES.md'],
   ['LICENSE', 'LICENSE'],

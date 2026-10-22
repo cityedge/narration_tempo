@@ -1,7 +1,7 @@
 # 対応ソースと再ビルド / Corresponding source and rebuilding
 
-利用時は `Narration_Tempo.html` を開くだけです。以下は改変・再配布する開発者向けです。
-Using the app only requires opening `Narration_Tempo.html`. The following is for developers.
+利用時は `index.html` を開くだけです。以下は改変・再配布する開発者向けです。
+Using the app only requires opening `index.html`. The following is for developers.
 
 ## アプリ / Application
 

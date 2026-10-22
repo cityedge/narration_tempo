@@ -4,7 +4,7 @@
 
 ## 起動と使い方
 
-ZIP全体を展開し、`Narration_Tempo.html` をChromeで開きます。
+ZIP全体を展開し、`index.html` をChromeで開きます。
 アプリは単一HTMLで動作します。サーバー、インターネット、追加インストールは利用時に不要です。
 
 1. WAV／MP3を選択・ドロップします。入力・仕上がりとも最大72分です。
@@ -27,7 +27,7 @@ ZIP全体を展開し、`Narration_Tempo.html` をChromeで開きます。
 
 ## English
 
-Extract the entire ZIP, then open `Narration_Tempo.html` in Chrome. No server, network or installation is required.
+Extract the entire ZIP, then open `index.html` in Chrome. No server, network or installation is required.
 Select English at the top. Load WAV/MP3, set tempo and optional voice corrections, convert the full recording,
 compare Original/Processed with playback and seeking, then save as 24-bit WAV, dithered 16-bit WAV or MP3.
 Input and output are limited to 72 minutes. The 30-second preview processes only the chosen excerpt;

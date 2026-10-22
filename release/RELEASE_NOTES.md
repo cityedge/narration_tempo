@@ -1,7 +1,10 @@
 # Narration Tempo v__APP_VERSION__
 
-`narration-tempo-__APP_VERSION__-user.zip` を展開し、`Narration_Tempo.html` をChromeで開いてください。
+`narration-tempo-__APP_VERSION__-user.zip` を展開し、`index.html` をChromeで開いてください。
 単一HTML・ローカル処理・サーバー不要。レベラー、速度調整、区間プレビュー、原音／処理後の再生とシーク、WAV／MP3保存に対応しています。
+
+v0.1.1では、公開用フォルダと利用者向けZIPの起動ファイル名を `index.html` に統一しました。
+GitHub Pagesでは、公開用フォルダの中身をリポジトリのルートへ配置し、Settings → Pagesで公開ブランチと / (root) を指定してください。
 
 アプリ本体はMIT、MP3エンコーダーはLGPL-3.0です。
 利用者向けZIPにはライセンス本文とNarration Tempo固有の変更・再結合用補助ファイルを添付しています。
