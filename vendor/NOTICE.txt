@@ -1,0 +1,27 @@
+Browser Media I/O 0.5.0 — MP3 module
+https://github.com/cityedge/browser-media-i-o/tree/b55de4966e9cfd1dc0141adbb708fcfeccc20017
+MIT wrapper; includes modified @breezystack/lamejs 1.2.7 (LGPL-3.0).
+Authors: Alex Zhukov, the LAME project and fork contributors.
+The MP3-only bundle does not include Mediabunny or the AAC encoder.
+
+Narration Tempo modification (2026-10-22): exported encodePcmSource accepts an
+asynchronous block reader, validates returned PCM and awaits each read.
+The encoder itself is unchanged. This enables bounded reads from a retained Blob.
+Modified wrapper: vendor/mp3-async.ts. Rebuild: vendor/rebuild.mjs.
+Corresponding MP3-only source/build inputs are included in vendor/mp3-source/.
+Install tools there with npm ci, then run vendor/rebuild.mjs and build.mjs.
+Replace vendor/browser-mp3.js and run node Narration_Tempo/build.mjs to relink.
+No signing key or runtime download is required.
+
+Corresponding upstream sources and build inputs:
+https://github.com/cityedge/browser-media-i-o/releases/tag/v0.5.0
+https://github.com/cityedge/browser-media-i-o/blob/b55de4966e9cfd1dc0141adbb708fcfeccc20017/third_party/lamejs/source.tar.gz
+https://github.com/cityedge/browser-media-i-o/tree/b55de4966e9cfd1dc0141adbb708fcfeccc20017/third_party/lamejs/extensions
+https://github.com/cityedge/browser-media-i-o/blob/b55de4966e9cfd1dc0141adbb708fcfeccc20017/scripts/prepare-lamejs.mjs
+The upstream source archive, extensions and build script are included locally
+in vendor/mp3-source/. See SOURCES.md for rebuilding and replacement.
+Preserve source availability when sharing.
+
+Full license texts: vendor/LICENSE-MIT.md, vendor/COPYING.LESSER, vendor/COPYING.
+The application itself is MIT licensed (LICENSE); this does not relicense lamejs.
+See THIRD_PARTY_NOTICES.md for the scope of each license.

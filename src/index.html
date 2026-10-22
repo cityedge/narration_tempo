@@ -1,0 +1,304 @@
+<!doctype html>
+<!--
+Narration Tempo v__APP_VERSION__: Copyright (c) 2026 cityedge. MIT; see LICENSE.
+Includes Browser Media I/O (MIT) and modified lamejs (LGPL-3.0).
+See THIRD_PARTY_NOTICES.md and SOURCES.md for notices and corresponding source access.
+Distribute with the accompanying documents and source-support files.
+-->
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="color-scheme" content="dark" />
+    <meta name="application-version" content="__APP_VERSION__" />
+    <title>Narration Tempo v__APP_VERSION__</title>
+    <style>
+      /*__STYLE__*/
+    </style>
+  </head>
+  <body>
+    <main>
+      <header>
+        <div>
+          <h1><span class="app-name">Narration Tempo</span> <span id="appVersion">v__APP_VERSION__</span></h1>
+          <p data-t="tagline">音量を整え、話す速さを調整</p>
+        </div>
+        <div class="languages">
+          <button id="ja" aria-pressed="true">日本語</button
+          ><button id="en" aria-pressed="false">English</button>
+        </div>
+      </header>
+      <div class="intake-row">
+        <button id="drop" class="drop">
+          <svg
+            width="30"
+            height="34"
+            viewBox="0 0 24 28"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.5"
+            aria-hidden="true"
+          >
+            <path d="M4 1h10l6 6v20H4zM14 1v7h6M12 22V12m-4 4 4-4 4 4" /></svg
+          ><span
+            ><strong id="fileName" data-t="choose">音声ファイルを選択</strong
+            ><small id="fileInfo" data-t="fileHelp"
+              >WAV / MP3 · 入出力は最大72分 · ドロップにも対応</small
+            ></span
+          >
+        </button>
+        <section class="status-panel">
+          <div class="row">
+            <span id="status" role="status" aria-live="polite"></span>
+            <button id="cancel" hidden data-t="cancel">中止</button>
+            <span id="percent">0%</span>
+          </div>
+          <progress id="progress" value="0" max="1"></progress>
+          <p class="note">
+            <span data-t="footer">ローカル処理 · 音声は送信されません。</span>
+          </p>
+        </section>
+      </div>
+      <input id="file" type="file" accept=".wav,.wave,.mp3" hidden />
+      <section class="wave-panel">
+        <div class="row">
+          <h2 data-t="whole">音声全体</h2>
+          <div class="legend">
+            <span data-t="common">共通</span>
+            <span class="green" data-t="increase">増加</span>
+            <span class="red" data-t="decrease">減少</span>
+          </div>
+        </div>
+        <canvas
+          id="wave"
+          width="1200"
+          height="150"
+          tabindex="0"
+          role="slider"
+          aria-label="プレビュー開始位置"
+          aria-valuemin="0"
+          aria-valuemax="0"
+          aria-valuenow="0"
+        ></canvas>
+        <div class="row time-axis">
+          <span>0:00</span
+          ><span id="waveHint" data-t="waveHelp"
+            >波形をクリックして試聴位置を選択</span
+          ><span id="waveEnd">—</span>
+        </div>
+        <div class="transport">
+          <div class="source-switch" role="group" aria-label="Playback source">
+            <button id="original" aria-pressed="true" data-t="source">
+              原音
+            </button>
+            <button id="processed" aria-pressed="false" data-t="result">
+              処理後
+            </button>
+          </div>
+          <button id="play" data-t="play">▶ 再生</button>
+          <button id="stop" data-t="stop">■ 停止</button>
+          <span id="playTime">0:00 / —</span>
+          <input
+            id="seek"
+            type="range"
+            min="0"
+            max="1"
+            step="0.01"
+            value="0"
+            aria-label="再生位置"
+          />
+        </div>
+        <audio id="fullPlayer" preload="metadata" hidden></audio>
+      </section>
+      <div class="columns">
+        <section class="settings">
+          <h2 data-t="settings">速度と音量</h2>
+          <label class="check"
+            ><input id="level" type="checkbox" checked /><span data-t="level"
+              >レベラー（音量を自動で整える）</span
+            ></label
+          >
+          <div class="tone-switches" role="group" aria-label="Voice correction">
+            <label
+              ><input id="eqLow" type="checkbox" /><span data-t="eqLow"
+                >低音を整理</span
+              ></label
+            >
+            <label
+              ><input id="eqMud" type="checkbox" /><span data-t="eqMud"
+                >こもりを低減</span
+              ></label
+            >
+            <label
+              ><input id="eqClear" type="checkbox" /><span data-t="eqClear"
+                >明瞭さを追加</span
+              ></label
+            >
+          </div>
+          <div class="row">
+            <label for="speed" data-t="speed">速度（話す速さ）</label>
+            <div>
+              <input
+                id="speed"
+                type="number"
+                min="0.7"
+                max="1.3"
+                step="0.001"
+                value="1.150"
+              />
+              ×
+            </div>
+          </div>
+          <input
+            id="slider"
+            type="range"
+            min="0.7"
+            max="1.3"
+            step="0.001"
+            value="1.150"
+            aria-label="速度倍率"
+          />
+          <div class="row range-labels">
+            <span data-t="slow">0.700（遅く）</span><span>1.000</span
+            ><span data-t="fast">1.300（速く）</span>
+          </div>
+          <div class="row target">
+            <label for="minutes" data-t="target">仕上がり時間</label>
+            <div class="inline">
+              <input
+                id="minutes"
+                type="number"
+                min="0"
+                max="72"
+                step="1"
+                value="0"
+              /><span data-t="min">分</span
+              ><input
+                id="seconds"
+                type="number"
+                min="0"
+                max="59"
+                step="1"
+                value="0"
+              /><span data-t="sec">秒</span
+              ><button id="apply" data-t="apply">適用</button>
+            </div>
+          </div>
+          <div class="row durations">
+            <span
+              ><span data-t="before">元の長さ</span>
+              <strong id="before">—</strong></span
+            ><span>→</span
+            ><span
+              ><span data-t="after">仕上がり</span>
+              <strong id="after">—</strong></span
+            >
+          </div>
+          <details>
+            <summary data-t="advanced">WSOLA詳細設定</summary>
+            <div class="ws-grid">
+              <label
+                >Sequence (ms)<input
+                  id="sequenceMs"
+                  type="number"
+                  min="16"
+                  max="120"
+                  value="40" /></label
+              ><label
+                >Seek (ms)<input
+                  id="seekMs"
+                  type="number"
+                  min="2"
+                  max="50"
+                  value="15" /></label
+              ><label
+                >Overlap (ms)<input
+                  id="overlapMs"
+                  type="number"
+                  min="2"
+                  max="30"
+                  value="8"
+              /></label>
+              <label
+                ><span data-t="stride">探索間隔</span
+                ><select id="searchStride">
+                  <option>1</option>
+                  <option>2</option>
+                  <option>4</option>
+                  <option selected>8</option>
+                  <option>16</option>
+                </select></label
+              ><label
+                ><span data-t="step">比較の間引き</span
+                ><select id="analysisStep">
+                  <option>1</option>
+                  <option>2</option>
+                  <option>4</option>
+                  <option selected>8</option>
+                  <option>16</option>
+                </select></label
+              ><button id="resetWs" data-t="reset">標準に戻す</button>
+            </div>
+            <p class="note" data-t="wsHelp">
+              OverlapはSequenceの半分未満。細かい探索は処理時間が長くなります。
+            </p>
+          </details>
+        </section>
+        <section class="output">
+          <h2 data-t="listenSave">試聴と保存</h2>
+          <button id="render" class="primary" data-t="render">全体変換</button>
+          <p id="renderHint" class="note" data-t="renderHelp">
+            変換後は上のパネルで自由に試聴できます。
+          </p>
+          <details id="previewDetails">
+            <summary data-t="shortPreview">30秒プレビュー（部分試聴）</summary>
+            <div class="row preview-row">
+              <label for="start" data-t="start">試聴開始位置</label>
+              <div class="inline">
+                <input
+                  id="start"
+                  type="number"
+                  min="0"
+                  step="0.1"
+                  value="0"
+                /><span data-t="sec">秒</span
+                ><button id="preview" class="accent-outline" data-t="preview">
+                  30秒プレビュー
+                </button>
+              </div>
+            </div>
+            <div class="ab">
+              <button id="a" aria-pressed="true" data-t="a">A 原音</button
+              ><button id="b" aria-pressed="false" data-t="b">B 処理後</button>
+            </div>
+            <audio id="player" controls preload="metadata"></audio>
+            <p id="previewInfo" class="note"></p>
+          </details>
+          <div class="row export-settings">
+            <label for="bits" data-t="format">出力形式</label
+            ><select id="bits">
+              <option value="24">24-bit PCM WAV</option>
+              <option value="16">16-bit PCM WAV</option>
+              <option value="mp3">MP3 · VBR Q3</option>
+            </select>
+          </div>
+          <p class="note" id="formatHelp"></p>
+          <button id="export" class="accent-outline save" data-t="export">
+            WAVを書き出す
+          </button>
+          <div class="row results">
+            <span id="metrics" data-t="loudHelp"
+              >−14 LUFSを目安に調整 · ピーク上限 −1 dBFS</span
+            ><a id="download" hidden data-t="download">再ダウンロード</a>
+          </div>
+        </section>
+      </div>
+    </main>
+    <script id="worker-source" type="text/plain">
+      /*__WORKER__*/
+    </script>
+    <script>
+      /*__APP__*/
+    </script>
+  </body>
+</html>
