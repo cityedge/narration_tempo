@@ -8,8 +8,15 @@ const root = new URL("./", import.meta.url),
   out = new URL("tests/tmp/", root);
 await mkdir(out, { recursive: true });
 const html = await readFile(new URL("index.html", root), "utf8");
-const { version } = JSON.parse(await readFile(new URL("package.json", root), "utf8"));
-const engine = await readFile(new URL("src/engine.js", root), "utf8");
+const { version } = JSON.parse(
+  await readFile(new URL("package.json", root), "utf8"),
+);
+const engine =
+  (await readFile(new URL("src/analysis.js", root), "utf8")) +
+  "\n" +
+  ((await readFile(new URL("src/formant.js", root), "utf8")) +
+    "\n" +
+    (await readFile(new URL("src/engine.js", root), "utf8")));
 new vm.Script(engine);
 new vm.Script(await readFile(new URL("src/app.js", root), "utf8"));
 assert(!/<(?:script[^>]+src|link[^>]+href)|fetch\(|XMLHttpRequest/i.test(html));
@@ -63,6 +70,21 @@ await page.setContent(html, { waitUntil: "load" });
 assert.equal(await page.title(), `Narration Tempo v${version}`);
 assert.equal(await page.locator("#appVersion").textContent(), `v${version}`);
 assert.equal(await page.locator("#licenses, #licenseDialog").count(), 0);
+assert.equal(await page.locator("#speed").inputValue(), "1.000");
+assert.equal(Number(await page.locator("#slider").inputValue()), 1);
+assert.equal(await page.locator(".ws-grid input").count(), 3);
+assert.equal(await page.locator("#searchStride,#analysisStep").count(), 0);
+assert(await page.locator("#sequenceMs").isDisabled());
+assert.match(await page.locator("#wsState").textContent(), /バイパス/);
+assert.match(await page.locator("#eqMud").getAttribute("title"), /320 Hz/);
+await page.locator("#en").click();
+assert.match(await page.locator("#eqMud").getAttribute("title"), /muddiness/);
+await page.locator("#ja").click();
+assert.match(await page.locator("#eqMud").getAttribute("title"), /こもり/);
+assert.equal(
+  await page.locator("#manual").getAttribute("href"),
+  "USER_GUIDE.html",
+);
 const input = fixture();
 await writeFile(new URL("fixture.wav", out), input);
 await page.locator("#file").setInputFiles({
@@ -100,6 +122,9 @@ await page.locator("#seek").evaluate((el) => {
   el.value = 0;
   el.dispatchEvent(new Event("input"));
 });
+// Exercise the existing non-unity workflow explicitly, independently of defaults.
+await page.locator("#speed").fill("1.150");
+await page.locator("#speed").dispatchEvent("change");
 await page.locator("#previewDetails summary").click();
 const rawCanvas = await page.locator("#wave").evaluate((c) => c.toDataURL()),
   originalMetrics = await page.locator("#metrics").textContent();
@@ -118,6 +143,12 @@ await page.locator("#preview").click();
 await page.waitForFunction(() => !document.querySelector("#a").disabled, {
   timeout: 120000,
 });
+await page.waitForFunction(
+  () =>
+    !document.querySelector("#player").paused &&
+    document.querySelector("#player").currentTime > 0.1,
+);
+assert.equal(await page.locator("#b").getAttribute("aria-pressed"), "true");
 assert.match(await page.locator("#metrics").textContent(), /LUFS/);
 assert.equal(
   await page.locator("#metrics").textContent(),
@@ -136,6 +167,142 @@ assert.match(
   await page.locator("#previewInfo").textContent(),
   /区間からの推定/,
 );
+assert.equal(
+  await page.locator("#spectrumCanvas").getAttribute("data-state"),
+  "ready",
+);
+await page.locator("#player").evaluate((p) => p.pause());
+await page.locator("#wsDetails summary").click();
+assert(!(await page.locator("#sequenceMs").isDisabled()));
+await page.locator("#formantManual").check();
+await page.locator("#formantPosition").fill("2");
+await page.locator("#analyzeFormant").click();
+await page.waitForFunction(
+  () => document.querySelector("#formantCanvas").dataset.state === "ready",
+);
+assert.match(
+  await page.locator("#formantInfo").textContent(),
+  /プレビューの実音/,
+);
+assert(await page.locator("#processed").isDisabled());
+assert(await page.locator("#export").isDisabled());
+assert.equal(
+  await page.locator("#wave").evaluate((c) => c.toDataURL()),
+  rawCanvas,
+);
+const envelopePixels = await page.locator("#formantCanvas").evaluate((c) => {
+  const a = c.getContext("2d").getImageData(0, 0, c.width, c.height).data;
+  let cyan = 0,
+    gray = 0;
+  for (let i = 0; i < a.length; i += 4) {
+    if (a[i + 1] > 180 && a[i + 2] > 180 && a[i] < 130) cyan++;
+    if (a[i] > 150 && a[i] < 190 && a[i + 1] > 160 && a[i + 2] > 180) gray++;
+  }
+  return { cyan, gray };
+});
+assert(envelopePixels.cyan > 30 && envelopePixels.gray > 30);
+// Analyze -> listen -> switch -> seek -> next candidate -> next range.
+assert.match(
+  await page.locator("#formantInfo").textContent(),
+  /抽出候補内で最大差/,
+);
+await page.locator("#formantPlay").click();
+await page.waitForFunction(
+  () =>
+    !document.querySelector("#formantPlayer").paused &&
+    document.querySelector("#formantPlayer").currentTime > 0.1,
+);
+assert(await page.locator("#player").evaluate((p) => p.paused));
+assert(await page.locator("#fullPlayer").evaluate((p) => p.paused));
+await page.locator("#formantA").click();
+await page.waitForFunction(
+  () =>
+    !document.querySelector("#formantPlayer").paused &&
+    document.querySelector("#formantPlayer").readyState >= 1,
+);
+assert.equal(
+  await page.locator("#formantA").getAttribute("aria-pressed"),
+  "true",
+);
+await page.locator("#formantPlay").click();
+await page.locator("#formantSeek").evaluate((el) => {
+  el.value = 0.4;
+  el.dispatchEvent(new Event("input"));
+});
+await page.waitForFunction(
+  () =>
+    Math.abs(document.querySelector("#formantPlayer").currentTime - 0.4) < 0.01,
+);
+assert(
+  await page
+    .locator("#formantWindow")
+    .evaluate((el) => el.getBoundingClientRect().width > 0),
+);
+assert.match(await page.locator("#formantListenInfo").textContent(), /50 ms/);
+await page.evaluate(() => {
+  document.querySelector("#formantB").click();
+  document.querySelector("#formantA").click();
+  document.querySelector("#formantB").click();
+  document.querySelector("#formantPlay").click();
+  document.querySelector("#formantPlay").click();
+});
+await page.waitForFunction(
+  () => document.querySelector("#formantPlayer").readyState >= 1,
+);
+assert(
+  await page.locator("#formantPlayer").evaluate((p) => p.paused),
+  "rapid switch / stop must remain stopped",
+);
+await page.locator("#formantPlay").click();
+await page.waitForFunction(
+  () => !document.querySelector("#formantPlayer").paused,
+);
+await page.locator("#formantNext").click();
+await page.waitForFunction(
+  () =>
+    document.querySelector("#formantInfo").dataset.candidateIndex === "1" &&
+    document.querySelector("#cancel").hidden,
+);
+assert(await page.locator("#formantPlayer").evaluate((p) => p.paused));
+await page.locator("#formantNextRange").click();
+await page.waitForFunction(
+  () =>
+    document.querySelector("#formantInfo").dataset.searchStart === "12" &&
+    document.querySelector("#cancel").hidden,
+);
+assert.equal(
+  await page.locator("#formantCanvas").getAttribute("data-state"),
+  "ready",
+);
+console.log(
+  "PASS: formant A/B playback, level/window annotation, seek, rapid switch/stop, candidate/range navigation.",
+);
+
+await page.screenshot({
+  path: fileURLToPath(new URL("analysis-desktop.png", out)),
+  fullPage: true,
+});
+await page.locator("#en").click();
+assert.match(await page.locator("#formantInfo").textContent(), /preview audio/);
+assert.equal(
+  await page.locator("#formantCanvas").getAttribute("aria-label"),
+  "Formant analysis (spectral envelope)",
+);
+await page.screenshot({
+  path: fileURLToPath(new URL("analysis-english.png", out)),
+  fullPage: true,
+});
+await page.setViewportSize({ width: 390, height: 844 });
+assert(
+  await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
+);
+await page.screenshot({
+  path: fileURLToPath(new URL("analysis-mobile.png", out)),
+  fullPage: true,
+});
+await page.setViewportSize({ width: 1440, height: 900 });
+await page.locator("#ja").click();
+await page.locator("#wsDetails summary").click();
 await page.screenshot({
   path: fileURLToPath(new URL("preview-only.png", out)),
   fullPage: true,
@@ -277,6 +444,22 @@ assert.equal(
 );
 assert(!(await page.locator("#processed").isDisabled()));
 assert(!(await page.locator("#export").isDisabled()));
+await page.locator("#wsDetails summary").click();
+await page.locator("#formantPosition").fill("29");
+await page.locator("#analyzeFormant").click();
+await page.waitForFunction(
+  () => document.querySelector("#formantCanvas").dataset.state === "ready",
+);
+assert.match(
+  await page.locator("#formantInfo").textContent(),
+  /全体変換の実音/,
+);
+assert(!(await page.locator("#export").isDisabled()));
+assert.equal(
+  await page.locator("#wave").evaluate((c) => c.toDataURL()),
+  convertedCanvas,
+);
+await page.locator("#wsDetails summary").click();
 await page.locator("#previewDetails summary").click();
 await page.screenshot({
   path: new URL("desktop.png", out).pathname.replace(/^\/([A-Z]:)/, "$1"),
@@ -333,6 +516,14 @@ await page.locator("#minutes").fill("0");
 await page.locator("#seconds").fill("40");
 await page.locator("#apply").click();
 assert.equal(await page.locator("#speed").inputValue(), "1.125");
+assert.equal(
+  await page.locator("#formantCanvas").getAttribute("data-state"),
+  "empty",
+);
+assert.equal(
+  await page.locator("#spectrumCanvas").getAttribute("data-state"),
+  "empty",
+);
 assert(await page.locator("#download").isHidden());
 await page.locator("#bits").selectOption("16");
 const exact = await exportWav();
@@ -608,8 +799,29 @@ if (process.argv.includes("--preview-long")) {
     );
     await page.locator("#player").evaluate((p) => p.pause());
   }
+  await page.locator("#eqMud").uncheck();
+  if (!(await page.locator("#wsDetails").evaluate((d) => d.open)))
+    await page.locator("#wsDetails summary").click();
+  await page.locator("#formantManual").check();
+  await page.locator("#formantPosition").fill("2400");
+  const analysisBegan = Date.now();
+  await page.locator("#analyzeFormant").click();
+  await page.waitForFunction(
+    () => document.querySelector("#formantCanvas").dataset.state === "ready",
+    null,
+    { timeout: 30000 },
+  );
+  console.log(
+    JSON.stringify({
+      longFormantPassed: true,
+      elapsedMs: Date.now() - analysisBegan,
+      range: await page.locator("#formantInfo").textContent(),
+    }),
+  );
+  assert(await page.locator("#processed").isDisabled());
+  assert(await page.locator("#export").isDisabled());
   await page.screenshot({
-    path: fileURLToPath(new URL("preview-long.png", out)),
+    path: fileURLToPath(new URL("formant-auto-long.png", out)),
     fullPage: true,
   });
 }
@@ -733,5 +945,172 @@ if (process.argv.includes("--long")) {
     );
   }
 }
+// Direct file:// launch: independent analysis before preview, no server.
+const localPage = await context.newPage();
+localPage.on("pageerror", (e) => errors.push(e.message));
+localPage.on("console", (m) => {
+  if (["error", "warning"].includes(m.type())) errors.push(m.text());
+});
+await localPage.goto(new URL("index.html", root).href);
+assert(localPage.url().startsWith("file:"));
+assert.equal(await localPage.title(), `Narration Tempo v${version}`);
+const vowelFile = fixture(3, 16000, 1);
+for (let i = 0; i < 3 * 16000; i++) {
+  let v = 0;
+  for (let f = 120; f < 5800; f += 120) {
+    let amp = 0.001;
+    for (const [center, width, weight] of [
+      [600, 120, 0.08],
+      [1300, 160, 0.05],
+      [2600, 200, 0.04],
+    ])
+      amp += weight * Math.exp(-0.5 * ((f - center) / width) ** 2);
+    v += amp * Math.sin((i * 2 * Math.PI * f) / 16000);
+  }
+  vowelFile.writeInt16LE(Math.round(v * 32767), 44 + i * 2);
+}
+await localPage.locator("#file").setInputFiles({
+  name: "合成母音.wav",
+  mimeType: "audio/wav",
+  buffer: vowelFile,
+});
+await localPage.waitForFunction(
+  () => !document.querySelector("#preview").disabled,
+);
+await localPage.locator("#wsDetails summary").click();
+await localPage.locator("#formantManual").check();
+await localPage.locator("#formantPosition").fill("1");
+await localPage.locator("#analyzeFormant").click();
+await localPage.waitForFunction(
+  () => document.querySelector("#formantCanvas").dataset.state === "ready",
+);
+assert.match(
+  await localPage.locator("#formantInfo").textContent(),
+  /部分変換.*1倍/,
+);
+assert(await localPage.locator("#processed").isDisabled());
+assert.equal(
+  await localPage.locator("#spectrumCanvas").getAttribute("data-state"),
+  "empty",
+);
+await localPage.locator("#speed").fill("1.150");
+await localPage.locator("#speed").dispatchEvent("change");
+await localPage.locator("#previewDetails summary").click();
+await localPage.locator("#preview").click();
+await localPage.waitForFunction(
+  () => document.querySelector("#spectrumCanvas").dataset.state === "ready",
+);
+await localPage.locator("#player").evaluate((p) => {
+  p.pause();
+  p.currentTime = 1;
+});
+await localPage.locator("#formantManual").uncheck();
+await localPage.locator("#analyzeFormant").click();
+await localPage.waitForFunction(
+  () => document.querySelector("#formantCanvas").dataset.state === "ready",
+);
+assert(
+  Math.abs(
+    Number(
+      await localPage.locator("#formantInfo").getAttribute("data-search-start"),
+    ) - 1.15,
+  ) < 0.001,
+);
+assert.match(
+  await localPage.locator("#formantInfo").textContent(),
+  /プレビューの実音/,
+);
+// Starting the main original player takes priority even while the preview is open.
+await localPage.locator("#play").click();
+await localPage.waitForFunction(
+  () => document.querySelector("#fullPlayer").currentTime > 0.2,
+);
+await localPage.locator("#play").click();
+const fullAnalysisTime = await localPage
+  .locator("#fullPlayer")
+  .evaluate((p) => p.currentTime);
+await localPage.locator("#analyzeFormant").click();
+await localPage.waitForFunction(() => document.querySelector("#cancel").hidden);
+assert(
+  Math.abs(
+    Number(
+      await localPage.locator("#formantInfo").getAttribute("data-search-start"),
+    ) - fullAnalysisTime,
+  ) < 0.001,
+);
+await localPage.locator("#formantPlay").click();
+await localPage.waitForFunction(
+  () => !document.querySelector("#formantPlayer").paused,
+);
+await localPage.locator("#player").evaluate((p) => p.play());
+await localPage.waitForFunction(
+  () => document.querySelector("#formantPlayer").paused,
+);
+await localPage.locator("#player").evaluate((p) => p.pause());
+await localPage.screenshot({
+  path: fileURLToPath(new URL("formant-auto-vowel.png", out)),
+  fullPage: true,
+});
+await localPage.locator("#en").click();
+await localPage.setViewportSize({ width: 390, height: 844 });
+assert(
+  await localPage.evaluate(
+    () => document.documentElement.scrollWidth <= innerWidth,
+  ),
+);
+await localPage.screenshot({
+  path: fileURLToPath(new URL("analysis-mobile.png", out)),
+  fullPage: true,
+});
+await localPage.locator("#speed").fill("1.200");
+await localPage.locator("#speed").dispatchEvent("change");
+assert(await localPage.locator("#formantPlay").isDisabled());
+assert.equal(
+  await localPage.locator("#formantPlayer").getAttribute("src"),
+  null,
+);
+assert.equal(
+  await localPage.locator("#formantCanvas").getAttribute("data-state"),
+  "empty",
+);
+await localPage.locator("#formantManual").check();
+await localPage.locator("#formantPosition").fill("4");
+assert(await localPage.locator("#analyzeFormant").isDisabled());
+await localPage.locator("#formantPosition").fill("3");
+assert(!(await localPage.locator("#analyzeFormant").isDisabled()));
+await localPage.locator("#analyzeFormant").click();
+await localPage.waitForFunction(() => document.querySelector("#cancel").hidden);
+assert.equal(
+  await localPage.locator("#formantCanvas").getAttribute("data-state"),
+  "unavailable",
+);
+assert.equal(errors.length, 0, errors.join("\n"));
+await localPage.close();
+console.log(
+  "PASS: file:// launch, standalone/unity formant analysis, preview playhead capture, end-position bounds, synthetic vowel charts, JA/EN and mobile layout.",
+);
+// User guide ships alongside the HTML and is readable without a server.
+const guide = await context.newPage();
+await guide.goto(new URL("USER_GUIDE.html", root).href);
+assert.match(await guide.title(), new RegExp(version.replaceAll(".", "\\.")));
+assert.equal(await guide.locator("h2").count(), 15);
+assert.equal(await guide.locator("nav a").count(), 15);
+assert.match(await guide.locator("body").textContent(), /320 Hz/);
+await guide.locator('nav a[href="#section-7"]').click();
+assert(guide.url().endsWith("#section-7"));
+await guide.screenshot({
+  path: fileURLToPath(new URL("manual-desktop.png", out)),
+  fullPage: false,
+});
+await guide.setViewportSize({ width: 390, height: 844 });
+assert(
+  await guide.evaluate(
+    () => document.documentElement.scrollWidth <= innerWidth,
+  ),
+);
+await guide.screenshot({
+  path: fileURLToPath(new URL("manual-mobile.png", out)),
+  fullPage: false,
+});
 assert.deepEqual(errors, []);
 await browser.close();

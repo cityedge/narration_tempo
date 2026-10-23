@@ -7,7 +7,7 @@
 
 Offline narration leveling and pitch-preserving tempo adjustment, with WAV and MP3 export. Open `index.html` in Chrome; no server, internet connection or installation is required. Switch the UI to English in the upper-right corner. The application is MIT licensed; the bundled MP3 encoder remains LGPL-3.0. The user ZIP contains notices, licenses and application-specific rebuild support; upstream source is available separately from the v0.5.0 Release. See [SOURCES.md](SOURCES.md) for building and redistribution.
 
-アプリのバージョンは `package.json` の `version` で管理し、ビルド時に画面、ページタイトル、HTMLのメタデータへ自動で埋め込みます。現在は **v0.1.1** です。
+アプリのバージョンは `package.json` の `version` で管理し、ビルド時に画面、ページタイトル、HTMLのメタデータへ自動で埋め込みます。現在は **v0.1.5** です。
 
 ## GitHub Pagesで公開する場合
 
@@ -18,6 +18,8 @@ GitHubの **Settings → Pages → Build and deployment** で、**Deploy from a 
 `src/index.html` はビルド前のテンプレートです。配置するのは公開用フォルダ直下の `index.html` です。利用者向けZIPも `index.html` をローカルで開く仕様です。旧ローカル名 `Narration_Tempo.html` はビルド時に同じ内容を生成しますが、配布物には含めません。
 
 For GitHub Pages, upload the contents of `narration-tempo-repository/` to the repository root, including the built `index.html` and `.nojekyll`. In Settings → Pages, select Deploy from a branch, your publishing branch (for example `main`), and / (root). No build on GitHub is needed. Use the published URL shown there.
+
+詳しい操作・各設定・EQ・制限・トラブル対処は [ユーザーマニュアル](USER_GUIDE.html) を参照してください（[Markdown版](USER_GUIDE.md)）。
 
 ## 使い方
 
@@ -30,13 +32,17 @@ For GitHub Pages, upload the contents of `narration-tempo-repository/` to the re
 
 差分波形は、原音と処理後の振幅包絡を発話位置に合わせて比較します。両方に共通する領域はグレー、原音より増えた外側は緑、減った領域は赤です。音声信号同士の差分ではありません。
 
-補助機能として「30秒プレビュー」を展開できます。選択位置から原音30秒分を対象にし、作成後はプレビュー欄の「B 処理後」が選ばれます。速度変更後のBの長さは倍率に応じて変わります。A/B切り替えは倍率に応じて再生位置を対応させます。全体再生との同時再生は行いません。
+補助機能として「30秒プレビュー」を展開できます。選択位置から原音30秒分を対象にし、作成後はプレビュー欄の「B 処理後」が選ばれ、自動再生します。速度変更後のBの長さは倍率に応じて変わります。A/B切り替えは倍率に応じて再生位置を対応させます。全体再生との同時再生は行いません。
 
 全体変換前は、選択区間と前後最大12秒の補正用余白だけを処理します。ファイル冒頭から試聴位置までの速度変換や、全体ラウドネス計測は行いません。EQなしのレベラーは読み込み時の解析カーブを利用し、EQありの場合は周辺区間で補正カーブを求めます。ラウドネスは試聴区間から推定するため、全体変換後の音量・境界の処理と完全には一致しません。
 
 同じ設定で全体変換済みなら、保持した完成音声の対応区間をそのまま切り出します。この場合は再度のEQ・レベラー・速度調整・音量調整を行いません。プレビューは全体波形の色、全体ラウドネス値、全体の処理後再生・保存の可否を更新しません。全体波形の着色と処理後再生は「全体変換」の完了後に有効になります。
 
-速度の初期値は1.150倍、範囲は0.700～1.300倍です。時間指定では表示倍率が丸まっても計算精度を維持します。WSOLA詳細設定は同じ画面内で展開できます。前回設定の永続保存、バッチ、無音削除はありません。
+速度の初期値は1.000倍（速度変換をバイパス）、範囲は0.700～1.300倍です。時間指定では表示倍率が丸まっても計算精度を維持します。WSOLA詳細設定は同じ画面内で展開できます。前回設定の永続保存、バッチ、無音削除はありません。
+
+30秒プレビューには、音量差を除いた原音／処理後の平均スペクトルを表示します。WSOLA詳細設定は「処理区間の長さ」「接続位置の探索範囲」「つなぎの長さ」の3項目です。その下のフォルマント分析では、再生位置から先の10秒を探索し、安定した候補の中で差が大きい発声のWSOLA直前／直後のスペクトル包絡を重ねます。「試聴」でその周囲を音量をそろえてA/B比較でき、「次の候補」「次の10秒」で確認を進められます。F1〜F3の自動検出や音質判定ではありません。詳細・比較対象・計算方法はマニュアルの9〜10節を参照してください。
+
+The preview includes a level-matched average spectrum. Advanced WSOLA exposes three timing controls and a separate spectral-envelope comparison before/after WSOLA. It searches up to 10 seconds ahead of the last-used playhead for stable voiced candidates, shows the largest sampled difference, and provides level-matched A/B listening and candidate navigation. It is an approximate view of vocal resonance, not automatic F1–F3 detection or a quality score.
 
 ## 処理
 
@@ -48,7 +54,7 @@ For GitHub Pages, upload the contents of `narration-tempo-repository/` to the re
 
 非常に小さな区間や大きなレベル差は、増幅上限により完全には均一になりません。無音検出・ノイズ除去は行いません。原音の抑揚、ノイズ、息の聴感を実音源で確認してください。
 
-WSOLAの探索順・相関評価・ステレオ位置共有・クロスフェードはNarration Tempo MVP v1.2を維持しています。中間音声と保持する完成音声はFloat32 PCMです。16bit WAVは保存時に一度だけTPDFディザ（±1 LSB、2 LSB peak-to-peak）を加えて量子化します。24bit WAVにはディザを加えません。MP3は保持音声から直接エンコードし、16bit WAVを中間ファイルにしません。極端に短い入力の不足部分はゼロで扱い、非有限サンプルは除外します。
+WSOLAはMVPを基に、v0.1.3で末尾保護と候補評価を改善しました。粗探索から最大6か所の候補領域と基準位置を選び、それぞれの周辺を1サンプル刻み・全サンプル相関で精密評価します。最後の区間は原音の終端へ合わせ、末尾の欠落・減衰・二重再生を防ぎます。左右共通の位置選択と線形クロスフェードは維持しています。速度変更時の出力は旧MVPとバイト一致しません。中間音声と保持する完成音声はFloat32 PCMです。16bit WAVは保存時に一度だけTPDFディザ（±1 LSB、2 LSB peak-to-peak）を加えて量子化します。24bit WAVにはディザを加えません。MP3は保持音声から直接エンコードし、16bit WAVを中間ファイルにしません。短い入力では窓を縮め、4サンプル未満の入力／出力では端点を補間します。1倍は常にバイパスし、非有限サンプルは除外します。
 
 ラウドネスはK-weightingとゲーティングを用いた参考Integrated LUFSです。速度調整後に、−14 LUFSへ近づけるゲインとサンプルピーク−1 dBFSを守るゲインの小さい方を適用します。厳密な−14 LUFS保証、True Peak制御、追加リミッターはありません。無音は増幅せず、測定不能として表示します。
 
@@ -73,11 +79,16 @@ MITラッパーと、LGPL-3.0のmodified lamejsを含みます。告知とライ
 ## 開発
 
 - `src/engine.js`：音源の窓読み込み、EQ、レベラー、WSOLA、ラウドネス計測、完成音声の保持、WAV／MP3エンコード、Worker制御
+- `src/analysis.js`：表示用FFT・平均スペクトル・包絡推定、WSOLA接続位置の対応付け
+- `src/formant.js`：候補の自動探索、比較順位、分析窓と周囲のA/B試聴
+- `test-formant-search.mjs`：候補の選別・順位、試聴音の実データ一致、取消・末尾の検証
+- `test-analysis.mjs`：分析の音量不変性、既知の山の移動、比較経路、局所処理の検証
 - `src/app.js`：ファイル検証、UI状態、言語、試聴とダウンロード
 - `src/index.html` / `src/style.css`：1画面構成とダークテーマ
 - `build.mjs`：上記を単一HTMLへ埋め込み
 - `vendor/`：MP3ライブラリ、変更ラッパー、再ビルド手順、ライセンス
-- `test-dsp.mjs`：WSOLA互換性、ピーク解析、ディザ、EQ連続性と周波数応答の検証
+- `test-wsola.mjs`：末尾の保持、短尺・各レート・候補選択品質、左右同期の検証
+- `test-dsp.mjs`：1倍の旧MVP互換性、ピーク解析、ディザ、EQ連続性と周波数応答の検証
 - `test.mjs`：ネットワーク遮断下のChromiumによる操作・入出力検証
 
 このREADMEのあるフォルダから実行します。利用者がアプリを開くために開発ツールを導入する必要はありません。

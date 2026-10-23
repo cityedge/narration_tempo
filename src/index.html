@@ -20,10 +20,21 @@ Distribute with the accompanying documents and source-support files.
     <main>
       <header>
         <div>
-          <h1><span class="app-name">Narration Tempo</span> <span id="appVersion">v__APP_VERSION__</span></h1>
+          <h1>
+            <span class="app-name">Narration Tempo</span>
+            <span id="appVersion">v__APP_VERSION__</span>
+          </h1>
           <p data-t="tagline">音量を整え、話す速さを調整</p>
         </div>
         <div class="languages">
+          <a
+            id="manual"
+            href="USER_GUIDE.html"
+            target="_blank"
+            rel="noopener"
+            data-t="manual"
+            >マニュアル</a
+          >
           <button id="ja" aria-pressed="true">日本語</button
           ><button id="en" aria-pressed="false">English</button>
         </div>
@@ -144,7 +155,7 @@ Distribute with the accompanying documents and source-support files.
                 min="0.7"
                 max="1.3"
                 step="0.001"
-                value="1.150"
+                value="1.000"
               />
               ×
             </div>
@@ -155,7 +166,7 @@ Distribute with the accompanying documents and source-support files.
             min="0.7"
             max="1.3"
             step="0.001"
-            value="1.150"
+            value="1.000"
             aria-label="速度倍率"
           />
           <div class="row range-labels">
@@ -194,54 +205,110 @@ Distribute with the accompanying documents and source-support files.
               <strong id="after">—</strong></span
             >
           </div>
-          <details>
+          <details id="wsDetails">
             <summary data-t="advanced">WSOLA詳細設定</summary>
             <div class="ws-grid">
               <label
-                >Sequence (ms)<input
+                ><span data-t="sequenceLabel">処理区間の長さ (ms)</span
+                ><input
                   id="sequenceMs"
                   type="number"
                   min="16"
                   max="120"
-                  value="40" /></label
-              ><label
-                >Seek (ms)<input
-                  id="seekMs"
-                  type="number"
-                  min="2"
-                  max="50"
-                  value="15" /></label
-              ><label
-                >Overlap (ms)<input
-                  id="overlapMs"
-                  type="number"
-                  min="2"
-                  max="30"
-                  value="8"
+                  value="40"
               /></label>
               <label
-                ><span data-t="stride">探索間隔</span
-                ><select id="searchStride">
-                  <option>1</option>
-                  <option>2</option>
-                  <option>4</option>
-                  <option selected>8</option>
-                  <option>16</option>
-                </select></label
-              ><label
-                ><span data-t="step">比較の間引き</span
-                ><select id="analysisStep">
-                  <option>1</option>
-                  <option>2</option>
-                  <option>4</option>
-                  <option selected>8</option>
-                  <option>16</option>
-                </select></label
-              ><button id="resetWs" data-t="reset">標準に戻す</button>
+                ><span data-t="seekLabel">接続位置の探索範囲 (±ms)</span
+                ><input id="seekMs" type="number" min="2" max="50" value="15"
+              /></label>
+              <label
+                ><span data-t="overlapLabel">つなぎの長さ (ms)</span
+                ><input id="overlapMs" type="number" min="2" max="30" value="8"
+              /></label>
+            </div>
+            <div class="ws-footer">
+              <button id="resetWs" data-t="reset">標準に戻す</button>
+              <p class="note" id="wsState"></p>
             </div>
             <p class="note" data-t="wsHelp">
-              OverlapはSequenceの半分未満。細かい探索は処理時間が長くなります。
+              つなぎの長さは処理区間の半分未満。探索の細かさは内部で管理します。
             </p>
+            <div class="analysis-panel">
+              <h3 data-t="formantTitle">フォルマント分析（声の響きの比較）</h3>
+              <div class="analysis-controls formant-actions">
+                <button
+                  id="analyzeFormant"
+                  class="accent-outline"
+                  data-t="analyzeFormant"
+                >
+                  再生位置から分析
+                </button>
+                <button id="formantPlay" data-t="formantPlay">▶ 試聴</button>
+                <div class="source-switch" role="group" aria-label="WSOLA A/B">
+                  <button id="formantA" aria-pressed="false" data-t="formantA">
+                    変換前
+                  </button>
+                  <button id="formantB" aria-pressed="true" data-t="formantB">
+                    変換後
+                  </button>
+                </div>
+              </div>
+              <div class="analysis-controls formant-secondary">
+                <button id="formantNext" data-t="formantNext">次の候補</button>
+                <button id="formantNextRange" data-t="formantNextRange">
+                  次の10秒を探索
+                </button>
+                <label class="formant-manual"
+                  ><input id="formantManual" type="checkbox" /><span
+                    data-t="formantManual"
+                    >開始位置を指定</span
+                  ></label
+                >
+                <input
+                  id="formantPosition"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value="0"
+                  aria-label="探索開始位置（原音の秒）"
+                />
+              </div>
+              <div id="formantListen" hidden>
+                <div
+                  class="formant-timeline"
+                  role="img"
+                  aria-describedby="formantListenInfo"
+                >
+                  <span id="formantWindow"></span><i id="formantCursor"></i>
+                </div>
+                <input
+                  id="formantSeek"
+                  type="range"
+                  min="0"
+                  max="1"
+                  step="0.001"
+                  value="0"
+                  aria-label="分析試聴の再生位置"
+                />
+                <p id="formantListenInfo" class="note"></p>
+              </div>
+              <audio id="formantPlayer" preload="metadata" hidden></audio>
+              <div class="legend analysis-legend">
+                <span data-t="preWsola">WSOLA直前</span
+                ><span class="cyan" data-t="postWsola">WSOLA直後</span>
+              </div>
+              <canvas
+                id="formantCanvas"
+                class="spectrum-canvas"
+                role="img"
+                aria-describedby="formantInfo formantHelp"
+              ></canvas>
+              <p id="formantInfo" class="note" role="status"></p>
+              <p id="formantHelp" class="note" data-t="formantHelp">
+                同じ発声付近の50
+                msを音量をそろえて比較。山の位置・形を見ます。F1〜F3の自動測定や音質判定ではありません。
+              </p>
+            </div>
           </details>
         </section>
         <section class="output">
@@ -273,6 +340,25 @@ Distribute with the accompanying documents and source-support files.
             </div>
             <audio id="player" controls preload="metadata"></audio>
             <p id="previewInfo" class="note"></p>
+            <div class="analysis-panel">
+              <div class="row">
+                <h3 data-t="spectrumTitle">平均スペクトル</h3>
+                <div class="legend analysis-legend">
+                  <span data-t="source">原音</span
+                  ><span class="cyan" data-t="result">処理後</span>
+                </div>
+              </div>
+              <canvas
+                id="spectrumCanvas"
+                class="spectrum-canvas"
+                role="img"
+                aria-describedby="spectrumInfo spectrumHelp"
+              ></canvas>
+              <p id="spectrumInfo" class="note" role="status"></p>
+              <p id="spectrumHelp" class="note" data-t="spectrumHelp">
+                試聴区間の原音／最終処理後。表示上の音量をそろえ、EQ・レベラー・速度変換による音色の差を比較します。
+              </p>
+            </div>
           </details>
           <div class="row export-settings">
             <label for="bits" data-t="format">出力形式</label

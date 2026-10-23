@@ -1,6 +1,6 @@
 {
   "name": "narration-tempo",
-  "version": "0.1.1",
+  "version": "0.1.5",
   "private": true,
   "type": "module",
   "description": "Offline single-HTML narration leveler and tempo editor",
@@ -8,13 +8,17 @@
   "license": "MIT",
   "scripts": {
     "build": "node build.mjs",
-    "test": "npm run build && node test-release.mjs && node test-dsp.mjs && node test.mjs",
-    "test:dsp": "node test-dsp.mjs",
+    "test": "npm run build && node test-release.mjs && node test-dsp.mjs && node test-wsola.mjs && node test-analysis.mjs && node test-formant-search.mjs && node test.mjs",
+    "test:dsp": "node test-dsp.mjs && node test-wsola.mjs && node test-analysis.mjs && node test-formant-search.mjs",
     "test:browser": "node test.mjs",
     "test:release": "node test-release.mjs",
     "build:mp3": "node vendor/rebuild.mjs",
     "package": "node package.mjs"
   },
-  "engines": { "node": ">=22.12.0" },
-  "devDependencies": { "playwright": "1.63.0" }
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "devDependencies": {
+    "playwright": "1.63.0"
+  }
 }

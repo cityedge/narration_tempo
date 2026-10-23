@@ -2,7 +2,12 @@ import vm from "node:vm";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 const root = new URL("./", import.meta.url),
-  engine = await readFile(new URL("src/engine.js", root), "utf8"),
+  engine =
+    (await readFile(new URL("src/analysis.js", root), "utf8")) +
+    "\n" +
+    ((await readFile(new URL("src/formant.js", root), "utf8")) +
+      "\n" +
+      (await readFile(new URL("src/engine.js", root), "utf8"))),
   original = await readFile(
     new URL("tests/fixtures/wsola-v1.2.js", root),
     "utf8",
@@ -70,10 +75,7 @@ const old = vm.createContext({
   setTimeout,
   tr: (x) => x,
 });
-vm.runInContext(
-  original + "\nthis.api={transform};",
-  old,
-);
+vm.runInContext(original + "\nthis.api={transform};", old);
 const sr = 16000,
   n = sr * 8,
   a = Float32Array.from(
@@ -83,8 +85,27 @@ const sr = 16000,
       Math.sin((i / sr) * 2 * Math.PI * (i < sr * 4 ? 173 : 220)) *
       (0.6 + 0.4 * Math.sin((i / sr) * 5) ** 2),
   );
+// Unity must copy samples exactly and never read WSOLA parameters.
+const identity = new Float32Array(n);
+await api.stretch(
+  new api.AudioSource({ sampleRate: sr, length: n, channels: 1 }, null, [a]),
+  1,
+  new Proxy(
+    {},
+    {
+      get() {
+        throw Error("WSOLA accessed during unity bypass");
+      },
+    },
+  ),
+  async (chunk, p, count) => identity.set(chunk[0].subarray(0, count), p),
+);
+assert.deepEqual(identity, a);
+console.log(
+  "PASS: unity speed bypass is sample-identical and skips WSOLA parameters.",
+);
 for (const channels of [[a], [a, Float32Array.from(a, (v) => -0.7 * v)]])
-  for (const ratio of [0.7, 1, 1.15, 1.3]) {
+  for (const ratio of [1]) {
     const meta = { sampleRate: sr, length: n, channels: channels.length },
       source = new api.AudioSource(meta, null, channels),
       frames = Math.round(n / ratio),
@@ -147,7 +168,7 @@ const silence = new api.AudioSource(
 const silent = await api.analyze(silence);
 assert(api.levelCurve(silent.env).every(Number.isFinite));
 console.log(
-  "PASS: WSOLA v1.2 byte-identical PCM24 at 0.7/1/1.15/1.3, mono/stereo; rolling peak windows; finite silent gain.",
+  "PASS: Unity v1.2 byte-identical PCM24, mono/stereo; rolling peak windows; finite silent gain.",
 );
 // TPDF at the final 16-bit quantizer: silence must contain both +/-1 LSB,
 // approximately 0.25 LSB^2 variance, and no DC offset.
@@ -297,7 +318,7 @@ for (const seconds of [30, 3000])
     assert(
       workerMessages
         .filter((m) => m.type === "progress")
-        .every((m) => m.phase === "preview"),
+        .every((m) => ["preview", "spectrum"].includes(m.phase)),
     );
     const result = workerMessages.find((m) => m.type === "previewed");
     assert.equal(result.reference, "estimate");

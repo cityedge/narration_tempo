@@ -5,11 +5,246 @@
       sequenceMs: 40,
       seekMs: 15,
       overlapMs: 8,
-      searchStride: 8,
-      analysisStep: 8,
     };
+  const controlHints = {
+    ja: ["日本語表示に切り替えます。", "Switch the interface to Japanese."],
+    manual: [
+      "詳しい操作・音声処理の説明を別タブで開きます。",
+      "Open the detailed user guide in a new tab.",
+    ],
+    drop: [
+      "WAV／MP3を選択、またはここにドロップ。入力・出力は最大72分です。",
+      "Choose or drop WAV/MP3. Input and output: up to 72 minutes.",
+    ],
+    cancel: [
+      "現在の処理を中止します。処理の区切りで反映されます。",
+      "Cancel the current operation at the next processing boundary.",
+    ],
+    wave: [
+      "クリック／ドラッグで移動。左右キーで5秒、Home/Endで先頭／末尾へ。",
+      "Click or drag to seek. Arrow keys: 5 seconds; Home/End: start/end.",
+    ],
+    original: [
+      "入力した原音を再生対象にします。",
+      "Select the original recording for playback.",
+    ],
+    processed: [
+      "全体変換した音を再生対象にします。全体変換の完了後に使えます。",
+      "Play the retained result, available after full conversion.",
+    ],
+    play: [
+      "選択中の音を再生／一時停止します。",
+      "Play or pause the selected recording.",
+    ],
+    stop: [
+      "停止して、再生を開始した位置へ戻ります。",
+      "Stop and return to the playback start position.",
+    ],
+    seek: [
+      "ドラッグして再生位置を変更します。",
+      "Drag to change playback position.",
+    ],
+    level: [
+      "時間方向の音量差を穏やかに整えます。OFFでも最終ラウドネス調整は行います。",
+      "Even out volume over time. Final loudness adjustment still runs when this is off.",
+    ],
+    eqLow: [
+      "75 Hz・12 dB/octのハイパスで不要な低音を抑えます。",
+      "75 Hz, 12 dB/oct high-pass filter reduces unwanted lows.",
+    ],
+    eqMud: [
+      "320 Hz周辺を広めに−2.5 dB（Q 0.8）。声のこもりを軽減します。",
+      "Broad −2.5 dB cut at 320 Hz (Q 0.8) reduces muddiness.",
+    ],
+    eqClear: [
+      "3.5 kHz周辺を＋2 dB（Q 0.8）。言葉の輪郭を補います。",
+      "Broad +2 dB boost at 3.5 kHz (Q 0.8) adds presence.",
+    ],
+    speed: [
+      "0.700〜1.300倍。1.000倍は速度変換をバイパスします。",
+      "0.700–1.300×. At 1.000×, time stretching is bypassed.",
+    ],
+    slider: [
+      "速度倍率を調整。大きい値ほど速く、仕上がりが短くなります。",
+      "Adjust tempo: higher values play faster and produce a shorter result.",
+    ],
+    minutes: [
+      "希望する仕上がり時間の分。入力後に「適用」を押します。",
+      "Target duration in minutes; press Apply after editing.",
+    ],
+    seconds: [
+      "希望する仕上がり時間の秒（0〜59）。",
+      "Seconds component of the target duration (0–59).",
+    ],
+    apply: [
+      "仕上がり時間から倍率を計算します。音声変換はまだ行いません。",
+      "Calculate the tempo from the target duration; this does not convert audio.",
+    ],
+    sequenceMs: [
+      "音をつなぐ単位の長さ。標準40 ms。通常は変更不要です。",
+      "Length of each audio segment. Default: 40 ms. Usually leave unchanged.",
+    ],
+    seekMs: [
+      "つなぎ目が似ている位置を探す範囲。標準は予定位置から前後15 ms。",
+      "Search around each expected join. Default: ±15 ms.",
+    ],
+    overlapMs: [
+      "重ねて滑らかにつなぐ長さ。標準8 ms、処理区間の長さの半分未満。",
+      "Crossfade length. Default: 8 ms; must be less than half the segment length.",
+    ],
+    resetWs: [
+      "WSOLAの3項目だけを標準値へ戻します。",
+      "Reset only the three WSOLA parameters to defaults.",
+    ],
+    render: [
+      "現在の設定で原音から全体を変換し、試聴・保存用に保持します。",
+      "Convert the entire original with current settings and retain it for playback and saving.",
+    ],
+    start: [
+      "原音上の開始位置（秒）。ここから原音30秒分を試聴します。",
+      "Start time in the original, in seconds. Preview up to 30 seconds of source audio.",
+    ],
+    preview: [
+      "選択区間だけを処理し、完成後にB（処理後）を自動再生します。",
+      "Process the selected excerpt, then automatically play B (Processed).",
+    ],
+    a: [
+      "プレビューの原音へ切り替えます。",
+      "Switch the excerpt to A (Original).",
+    ],
+    b: [
+      "プレビューの処理後へ切り替えます。",
+      "Switch the excerpt to B (Processed).",
+    ],
+    player: [
+      "30秒プレビューの再生・一時停止・シーク・音量を操作します。",
+      "Play, pause, seek and adjust volume for the preview excerpt.",
+    ],
+    bits: [
+      "24bit WAV／ディザ付き16bit WAV／MP3 VBR Q3。形式変更だけなら再変換不要です。",
+      "24-bit WAV, dithered 16-bit WAV, or MP3 VBR Q3. Changing format needs no new full conversion.",
+    ],
+    export: [
+      "保持した完成音声を選択形式で保存します。保存先はブラウザ設定に従います。",
+      "Save the retained result in the selected format, using browser download settings.",
+    ],
+    download: [
+      "直前に作成した保存用ファイルをもう一度ダウンロードします。",
+      "Download the most recently encoded file again.",
+    ],
+    en: ["英語表示に切り替えます。", "Switch the interface to English."],
+  };
+  Object.assign(controlHints, {
+    analyzeFormant: [
+      "最後に操作した全体音声／プレビューの再生位置から10秒を探索します。開始位置の指定もできます。",
+      "Search 10 seconds ahead of the last-used full recording or preview playhead, or use a specified start.",
+    ],
+    formantPosition: [
+      "原音上の秒数を探索の起点として指定します。",
+      "Set the search start in original seconds.",
+    ],
+    formantManual: [
+      "ONで開始位置を手入力。OFFでは最後に操作した再生位置を使用します。",
+      "Enable to enter a start time. Otherwise use the last-used playhead.",
+    ],
+    formantPlay: [
+      "分析に使った実音の前後を、音量をそろえて試聴／一時停止します。",
+      "Play/pause the actual analyzed audio with surrounding context and matched A/B levels.",
+    ],
+    formantA: [
+      "EQ・レベラー適用後、速度変換前の音へ切り替えます。",
+      "Switch to the audio after EQ/leveling, before time stretching.",
+    ],
+    formantB: [
+      "速度変換後の音へ切り替えます。",
+      "Switch to the actual time-stretched audio.",
+    ],
+    formantNext: [
+      "同じ探索範囲の候補を差が大きい順に切り替えます。最後の候補の次は先頭へ戻ります。",
+      "Cycle through candidates in the same range, ordered by difference.",
+    ],
+    formantNextRange: [
+      "前回探索した範囲の直後から、次の10秒を探索します。",
+      "Search the next 10 seconds immediately after the previous range.",
+    ],
+    formantSeek: [
+      "短い分析用音声の再生位置を変更します。上の色付き部分が分析窓です。",
+      "Seek within the analysis audition. The highlighted section above marks the analysis window.",
+    ],
+  });
+  function applyHints() {
+    for (const [id, pair] of Object.entries(controlHints)) {
+      const el = $(id),
+        hint = pair[lang === "en" ? 1 : 0];
+      el.title = hint;
+      el.setAttribute("aria-description", hint);
+      const label = el.closest("label");
+      if (label) label.title = hint;
+    }
+    document.querySelector('[data-t="advanced"]').title =
+      lang === "ja"
+        ? "速度変換の詳細設定。1倍では使われません。通常は標準値を使用します。"
+        : "Time-stretch settings. Unused at 1×; defaults suit normal use.";
+    document.querySelector('[data-t="shortPreview"]').title =
+      lang === "ja"
+        ? "部分試聴の操作を開閉します。全体変換前の音量は区間からの推定です。"
+        : "Show or hide excerpt controls. Before full conversion, loudness is estimated locally.";
+  }
   const text = {
     ja: {
+      formantExpired: "設定が変わりました。もう一度分析してください。",
+      analysisEnd: "音声の末尾です。少し手前へ再生位置を戻してください。",
+      analysisNoVoiced:
+        "この範囲に安定した発声の候補がありません。次の区間を探索してください。",
+      formantLevelMatched: "試聴音量は前後で一致",
+      formantWindow: "色付き部分＝分析した50 ms",
+      formantLargest: "抽出候補内で最大差",
+      formantCandidate: "候補（差が大きい順）",
+      formantRange: "探索範囲",
+      formantSeek: "分析試聴の再生位置",
+      formantManual: "開始位置を指定",
+      formantNextRange: "次の10秒を探索",
+      formantNext: "次の候補",
+      formantB: "変換後",
+      formantA: "変換前",
+      formantPlay: "▶ 試聴",
+      analyzeFormantManual: "指定位置から分析",
+      frequencyHz: "周波数 (Hz)",
+      relativeDb: "相対 dB",
+      analysisShort: "分析に必要な長さがありません。",
+      analysisSilent: "無音または音が小さすぎるため比較できません。",
+      formantBypass: "1倍：速度変換なし",
+      formantTimes: "分析窓の中心（原音 → 変換後）",
+      formantLocal: "選択付近を部分変換して比較",
+      formantPreview: "30秒プレビューの実音を比較",
+      formantFull: "全体変換の実音を比較",
+      formantReady:
+        "比較箇所を選びました。「試聴」で変換前／後を確認できます。",
+      formantWorking: "安定した発声を探索し、WSOLA前後の差を比較中…",
+      formantEmpty:
+        "再生位置から先の10秒を探索し、安定した発声の候補から差が大きい箇所を選びます。",
+      formantHelp:
+        "前後3窓で差を確認し、代表の50 msを表示。試聴は周囲を含む原音約1.6秒分です。差の大きさは音質の良し悪しを示しません。",
+      postWsola: "WSOLA直後",
+      preWsola: "WSOLA直前",
+      analyzeFormant: "再生位置から分析",
+      formantPosition: "探索開始位置（原音の秒）",
+      formantTitle: "フォルマント分析（声の響きの比較）",
+      spectrumSampling: "区間全体から均等抽出した窓を平均",
+      spectrumRange: "原音の対象区間",
+      spectrumWorking: "試聴区間の平均スペクトルを計算中…",
+      spectrumHelp:
+        "試聴区間の原音／最終処理後。表示上の音量をそろえ、EQ・レベラー・速度変換による音色の差を比較します。",
+      spectrumEmpty: "30秒プレビューを作成すると表示します。",
+      spectrumTitle: "平均スペクトル",
+      wsActive: "通常は標準値のまま使ってください。",
+      wsBypass: "1.000倍では速度変換をバイパスします。",
+      overlapLabel: "つなぎの長さ (ms)",
+      seekLabel: "接続位置の探索範囲 (±ms)",
+      sequenceLabel: "処理区間の長さ (ms)",
+      previewAutoplayBlocked:
+        "プレビューを作成しました。自動再生できない場合は下の再生ボタンを押してください。",
+      manual: "マニュアル",
       tagline: "音量を整え、話す速さを調整",
       choose: "音声ファイルを選択",
       fileHelp: "WAV / MP3 · 入出力は最大72分 · ドロップにも対応",
@@ -50,11 +285,9 @@
       before: "元の長さ",
       after: "仕上がり",
       advanced: "WSOLA詳細設定",
-      stride: "探索間隔",
-      step: "比較の間引き",
       reset: "標準に戻す",
       wsHelp:
-        "OverlapはSequenceの半分未満。細かい探索は処理時間が長くなります。",
+        "つなぎの長さは処理区間の半分未満。探索の細かさは内部で管理します。",
       listenSave: "試聴と保存",
       start: "試聴開始位置",
       preview: "30秒プレビュー",
@@ -86,7 +319,7 @@
       exported: "保存用ファイルを作成し、ダウンロードを開始しました。",
       cancelled: "処理を中止しました。",
       invalid:
-        "速度・時間・WSOLAの入力値を確認してください。OverlapはSequenceの半分未満です。",
+        "速度・時間・WSOLAの入力値を確認してください。つなぎの長さは処理区間の半分未満です。",
       durationLimit:
         "仕上がり時間が72分を超えます。速度を上げるか、短い音源を選んでください。",
       inputLimit:
@@ -109,6 +342,59 @@
         "仕上がり時間を適用しました。表示倍率より細かい精度で処理します。",
     },
     en: {
+      formantExpired: "Settings changed. Analyze again.",
+      analysisEnd: "End of recording. Move the playhead back before analyzing.",
+      analysisNoVoiced:
+        "No stable voiced candidate in this range. Try the next range.",
+      formantLevelMatched: "A/B playback levels matched",
+      formantWindow: "Highlighted = analyzed 50 ms",
+      formantLargest: "Largest among sampled candidates",
+      formantCandidate: "Candidate (largest difference first)",
+      formantRange: "Search range",
+      formantSeek: "Analysis audition position",
+      formantManual: "Set start position",
+      formantNextRange: "Search next 10 sec",
+      formantNext: "Next candidate",
+      formantB: "After",
+      formantA: "Before",
+      formantPlay: "▶ Listen",
+      analyzeFormantManual: "Analyze from position",
+      frequencyHz: "Frequency (Hz)",
+      relativeDb: "Relative dB",
+      analysisShort: "The audio is too short for this analysis.",
+      analysisSilent: "Silence or audio too quiet to compare.",
+      formantBypass: "1×: time stretching bypassed",
+      formantTimes: "Window centers (original → output)",
+      formantLocal: "Locally converted excerpt",
+      formantPreview: "Actual 30-second preview audio",
+      formantFull: "Actual full-conversion audio",
+      formantReady: "Comparison ready. Use Listen to compare Before and After.",
+      formantWorking:
+        "Finding stable voiced regions and comparing WSOLA envelopes…",
+      formantEmpty:
+        "Search 10 seconds ahead of the playhead and select a stable voiced candidate with a large difference.",
+      formantHelp:
+        "Differences are checked in three nearby windows; one representative 50 ms window is shown. Listen includes about 1.6 original seconds of context. Difference is not a quality score.",
+      postWsola: "After WSOLA",
+      preWsola: "Before WSOLA",
+      analyzeFormant: "Analyze from playhead",
+      formantPosition: "Search start (original seconds)",
+      formantTitle: "Formant analysis (spectral envelope)",
+      spectrumSampling: "Average of windows sampled evenly across the excerpt",
+      spectrumRange: "Original excerpt",
+      spectrumWorking: "Calculating the excerpt's average spectrum…",
+      spectrumHelp:
+        "Original vs final excerpt. Display levels are matched to compare tonal changes from EQ, leveling and tempo.",
+      spectrumEmpty: "Create a 30-second preview to see the comparison.",
+      spectrumTitle: "Average spectrum",
+      wsActive: "Defaults are recommended for normal use.",
+      wsBypass: "At 1.000×, time stretching is bypassed.",
+      overlapLabel: "Crossfade length (ms)",
+      seekLabel: "Join search range (±ms)",
+      sequenceLabel: "Segment length (ms)",
+      previewAutoplayBlocked:
+        "Preview ready. If autoplay is blocked, press Play below.",
+      manual: "Manual",
       tagline: "Even out the level. Set the pace.",
       choose: "Choose an audio file",
       fileHelp: "WAV / MP3 · Up to 72 min in / out · Or drop a file",
@@ -150,11 +436,9 @@
       before: "Original",
       after: "Final",
       advanced: "Advanced WSOLA settings",
-      stride: "Search stride",
-      step: "Analysis step",
       reset: "Defaults",
       wsHelp:
-        "Overlap must be less than half of Sequence. Finer searches take longer.",
+        "Crossfade must be less than half the segment. Search granularity is managed internally.",
       listenSave: "Listen & save",
       start: "Preview start",
       preview: "30-second preview",
@@ -213,7 +497,7 @@
     busy = false,
     meta = null,
     file = null,
-    ratio = 1.15,
+    ratio = 1,
     fromDuration = false,
     rawWave = null,
     resultWave = null,
@@ -233,7 +517,15 @@
     fullToken = 0,
     animation = 0,
     wantPlay = false,
-    previewReference = null;
+    previewReference = null,
+    spectrumData = null,
+    formantData = null,
+    formantAudio = null,
+    formantMode = "b",
+    formantToken = 0,
+    formantWantPlay = false,
+    formantAnimation = 0,
+    activeMainPlayer = "full";
   const t = (k) => text[lang][k] || k;
   const time = (s) => {
     const n = Math.round(s);
@@ -262,6 +554,9 @@
     formatHelp();
     playbackUI();
     previewInfo();
+    applyHints();
+    analysisUI();
+    wsState();
   }
   $("ja").onclick = () => {
     lang = "ja";
@@ -289,8 +584,10 @@
         : `${stats.finalLufs.toFixed(1)} LUFS · ${stats.finalPeak > 0 ? (20 * Math.log10(stats.finalPeak)).toFixed(1) : "−∞"} dBFS${stats.limited ? " · " + t("limited") : ""}`;
   }
   function config() {
-    const ws = {};
-    for (const key of Object.keys(wsDefaults)) ws[key] = Number($(key).value);
+    const ws = { searchStride: 8, analysisStep: 8 };
+    for (const key of Object.keys(wsDefaults))
+      ws[key] =
+        Math.abs(ratio - 1) < 1e-8 ? wsDefaults[key] : Number($(key).value);
     return {
       ratio,
       level: $("level").checked,
@@ -315,9 +612,10 @@
       return "invalid";
     for (const key of Object.keys(wsDefaults))
       if (
-        !$(key).value ||
-        !$(key).validity.valid ||
-        !Number.isInteger(c.ws[key])
+        Math.abs(ratio - 1) >= 1e-8 &&
+        (!$(key).value ||
+          !$(key).validity.valid ||
+          !Number.isInteger(c.ws[key]))
       )
         return "invalid";
     if (c.ws.overlapMs * 2 >= c.ws.sequenceMs) return "invalid";
@@ -347,6 +645,24 @@
         !urls[fullMode];
     $("a").disabled = $("b").disabled = busy || !urls.a;
     $("cancel").hidden = !busy;
+    for (const key of Object.keys(wsDefaults))
+      $(key).disabled = busy || Math.abs(ratio - 1) < 1e-8;
+    $("resetWs").disabled = busy || Math.abs(ratio - 1) < 1e-8;
+    $("formantPosition").disabled =
+      busy || !meta || !$("formantManual").checked;
+    $("formantManual").disabled = busy || !meta;
+    for (const id of ["formantPlay", "formantA", "formantB", "formantSeek"])
+      $(id).disabled = busy || !formantAudio;
+    $("formantNext").disabled = busy || !(formantData?.candidateCount > 1);
+    $("formantNextRange").disabled =
+      busy || formantData?.nextStart == null || !!valid();
+    $("analyzeFormant").disabled =
+      busy ||
+      !meta ||
+      !!valid() ||
+      ($("formantManual").checked &&
+        (!$("formantPosition").value || !$("formantPosition").validity.valid));
+    wsState();
   }
   function setBusy(value) {
     busy = value;
@@ -358,6 +674,9 @@
   }
   function clearPreview() {
     previewReference = null;
+    if (activeMainPlayer === "preview") activeMainPlayer = "full";
+    spectrumData = null;
+    analysisUI();
     previewInfo();
     abToken++;
     $("player").pause();
@@ -378,6 +697,7 @@
   function invalidate(full = true) {
     clearPreview();
     if (full) {
+      clearFormant();
       if (fullMode === "processed") selectFull("original");
       resultMeta = null;
       revoke("processed");
@@ -537,6 +857,8 @@
     animation = requestAnimationFrame(tick);
   }
   async function startFull() {
+    activeMainPlayer = "full";
+    stopFormant();
     const request = fullToken;
     $("player").pause();
     wantPlay = true;
@@ -579,6 +901,7 @@
   }
   function seekFull(originalSeconds) {
     if (!meta) return;
+    activeMainPlayer = "full";
     fullPosition = Math.max(
       0,
       Math.min(meta.length / meta.sampleRate, Number(originalSeconds) || 0),
@@ -596,8 +919,14 @@
     playbackUI();
     draw();
   }
-  $("original").onclick = () => selectFull("original");
-  $("processed").onclick = () => selectFull("processed");
+  $("original").onclick = () => {
+    activeMainPlayer = "full";
+    selectFull("original");
+  };
+  $("processed").onclick = () => {
+    activeMainPlayer = "full";
+    selectFull("processed");
+  };
   $("play").onclick = () => {
     if (wantPlay) {
       fullPosition = $("fullPlayer").currentTime * playbackScale();
@@ -627,7 +956,14 @@
       status("playbackError", true);
     }
   };
-  $("player").onplay = () => stopFull();
+  $("player").onplay = () => {
+    activeMainPlayer = "preview";
+    stopFull();
+    stopFormant();
+  };
+  $("player").onseeking = () => {
+    if (urls.a && !busy) activeMainPlayer = "preview";
+  };
   const waveSeek = (e) => {
     if (!meta) return;
     const rect = $("wave").getBoundingClientRect();
@@ -893,6 +1229,8 @@
         export: "exporting",
         render: "rendering",
         mp3: "mp3",
+        spectrum: "spectrumWorking",
+        formant: "formantWorking",
       }[m.phase];
       status(phase);
       $("progress").value = m.value;
@@ -901,6 +1239,10 @@
     }
     if (m.type === "loaded") {
       rawWave = m.wave;
+      $("formantPosition").max = Math.max(0, meta.length / meta.sampleRate);
+      $("formantPosition").value = 0;
+      $("formantManual").checked = false;
+      activeMainPlayer = "full";
       setBusy(false);
       const error = valid();
       status(error || "ready", !!error);
@@ -936,9 +1278,15 @@
       urls.a = URL.createObjectURL(m.a);
       urls.b = URL.createObjectURL(m.b);
       previewReference = m.reference;
+      spectrumData = { ...m.spectrum, start: m.start, duration: m.duration };
+      analysisUI();
       previewInfo();
-      selectAB("b", false);
+      selectAB("b", false, true);
       status("previewed");
+    }
+    if (m.type === "formantAnalyzed") {
+      installFormantResult(m);
+      status(m.data.unavailable || "formantReady");
     }
     if (m.type === "rendered") {
       stats = m.stats;
@@ -982,20 +1330,26 @@
         "s"
       : "x" + ratio.toFixed(3);
     const ws = Object.keys(wsDefaults).some((k) => c.ws[k] !== wsDefaults[k])
-      ? `_ws${c.ws.sequenceMs}-${c.ws.seekMs}-${c.ws.overlapMs}_s${c.ws.searchStride}d${c.ws.analysisStep}`
+      ? `_ws${c.ws.sequenceMs}-${c.ws.seekMs}-${c.ws.overlapMs}`
       : "";
     const eq = Object.values(c.eq).some(Boolean) ? "_voice" : "";
     return `${stem}_${c.level ? "leveled_" : ""}${speed}${ws}${eq}${c.bits === "mp3" ? "_VBR.mp3" : `_${c.bits}bit.wav`}`;
   }
-  function process(type) {
+  function process(type, startOverride) {
     if (busy || !meta || !worker) return;
     const error = valid();
     if (error) {
       status(error, true);
       return;
     }
+    const analysis = type === "formant" || type === "formantCandidate";
+    const analysisStart =
+      startOverride ??
+      ($("formantManual").checked
+        ? Number($("formantPosition").value)
+        : currentAnalysisPosition());
     if (type === "preview") clearPreview();
-    else {
+    else if (!analysis) {
       revoke("export");
       $("download").hidden = true;
     }
@@ -1007,6 +1361,11 @@
       invalidate();
       $("previewDetails").open = false;
     }
+    if (type === "formant") {
+      $("formantPosition").value = analysisStart.toFixed(2);
+      clearFormant();
+    }
+    stopFormant();
     setBusy(true);
     $("player").pause();
     stopFull();
@@ -1019,14 +1378,32 @@
           : "exporting"
         : type === "preview"
           ? "previewing"
-          : "measure",
+          : analysis
+            ? "formantWorking"
+            : "measure",
     );
     worker.postMessage({
       type,
       config: config(),
-      start: Number($("start").value) || 0,
+      start: analysis ? analysisStart : Number($("start").value) || 0,
     });
   }
+  $("analyzeFormant").onclick = () => process("formant");
+  $("formantNext").onclick = () => process("formantCandidate");
+  $("formantNextRange").onclick = () => {
+    if (formantData?.nextStart != null)
+      process("formant", formantData.nextStart);
+  };
+  $("formantPosition").oninput = () => {
+    clearFormant();
+    locks();
+  };
+  $("formantManual").onchange = () => {
+    if ($("formantManual").checked)
+      $("formantPosition").value = currentAnalysisPosition().toFixed(2);
+    clearFormant();
+    locks();
+  };
   $("preview").onclick = () => process("preview");
   $("render").onclick = () => process("render");
   $("export").onclick = () => process("export");
@@ -1039,7 +1416,7 @@
       setBusy(false);
     }
   };
-  function selectAB(next, keep = true) {
+  function selectAB(next, keep = true, autoplay = false) {
     if (!urls[next]) return;
     const player = $("player"),
       playing = !player.paused,
@@ -1054,14 +1431,24 @@
       player.currentTime = keep
         ? Math.max(0, Math.min(target, player.duration - 0.01))
         : 0;
-      if (playing && keep) player.play().catch(() => {});
+      if (autoplay || (playing && keep))
+        player.play().catch((error) => {
+          if (request !== abToken || error.name === "AbortError") return;
+          status("previewAutoplayBlocked");
+        });
     };
     player.load();
     $("a").setAttribute("aria-pressed", String(next === "a"));
     $("b").setAttribute("aria-pressed", String(next === "b"));
   }
-  $("a").onclick = () => selectAB("a");
-  $("b").onclick = () => selectAB("b");
+  $("a").onclick = () => {
+    activeMainPlayer = "preview";
+    selectAB("a");
+  };
+  $("b").onclick = () => {
+    activeMainPlayer = "preview";
+    selectAB("b");
+  };
   $("drop").onclick = () => $("file").click();
   $("file").onchange = () => {
     load($("file").files[0]);
@@ -1083,6 +1470,269 @@
     worker?.terminate();
     for (const k of Object.keys(urls)) revoke(k);
   });
+
+  function currentAnalysisPosition() {
+    if (activeMainPlayer === "preview" && urls.a && spectrumData)
+      return Math.min(
+        meta.length / meta.sampleRate,
+        spectrumData.start +
+          $("player").currentTime * (mode === "b" ? ratio : 1),
+      );
+    const player = $("fullPlayer");
+    return player.readyState && !player.seeking
+      ? player.currentTime * playbackScale()
+      : fullPosition;
+  }
+  function stopFormant() {
+    formantWantPlay = false;
+    $("formantPlayer").pause();
+    cancelAnimationFrame(formantAnimation);
+    formantPlaybackUI();
+  }
+  function clearFormant() {
+    stopFormant();
+    formantToken++;
+    formantData = formantAudio = null;
+    formantMode = "b";
+    $("formantPlayer").removeAttribute("src");
+    $("formantPlayer").load();
+    revoke("formantA");
+    revoke("formantB");
+    analysisUI();
+  }
+  function installFormantResult(message) {
+    stopFormant();
+    formantToken++;
+    revoke("formantA");
+    revoke("formantB");
+    formantData = message.data;
+    formantAudio = message.audio
+      ? { ...message.audio, a: undefined, b: undefined }
+      : null;
+    if (message.audio) {
+      urls.formantA = URL.createObjectURL(message.audio.a);
+      urls.formantB = URL.createObjectURL(message.audio.b);
+      selectFormantMode(formantMode, false);
+    } else {
+      $("formantPlayer").removeAttribute("src");
+      $("formantPlayer").load();
+    }
+    analysisUI();
+  }
+  function formantDescription() {
+    if (!formantData) return t("formantEmpty");
+    const range = `${t("formantRange")}: ${formantData.searchStart.toFixed(2)}–${formantData.searchEnd.toFixed(2)} s`;
+    if (formantData.unavailable)
+      return `${range} · ${t(formantData.unavailable)}`;
+    return `${range} · ${t("formantCandidate")}: ${formantData.candidateIndex + 1}/${formantData.candidateCount}${formantData.candidateIndex === 0 ? " · " + t("formantLargest") : ""}\n${t(formantData.reference)} · ${t("formantTimes")}: ${formantData.sourceTime.toFixed(3)} → ${formantData.outputTime.toFixed(3)} s${formantData.bypass ? " · " + t("formantBypass") : ""}`;
+  }
+  function formantPlaybackUI() {
+    $("formantPlay").textContent = t(formantWantPlay ? "pause" : "formantPlay");
+    $("formantA").setAttribute("aria-pressed", String(formantMode === "a"));
+    $("formantB").setAttribute("aria-pressed", String(formantMode === "b"));
+    $("formantListen").hidden = !formantAudio;
+    if (!formantAudio) return;
+    const duration =
+      formantMode === "a" ? formantAudio.durationA : formantAudio.durationB;
+    const center =
+      formantMode === "a" ? formantAudio.centerA : formantAudio.centerB;
+    const half = formantAudio.windowMs / 2000,
+      start = Math.max(0, center - half),
+      end = Math.min(duration, center + half);
+    const current = Math.min(duration, $("formantPlayer").currentTime || 0);
+    $("formantSeek").max = duration;
+    $("formantSeek").value = current;
+    $("formantWindow").style.left = (100 * start) / duration + "%";
+    $("formantWindow").style.width = (100 * (end - start)) / duration + "%";
+    $("formantCursor").style.left = (100 * current) / duration + "%";
+    $("formantListenInfo").textContent =
+      `${current.toFixed(2)} / ${duration.toFixed(2)} s · ${t("formantWindow")}: ${start.toFixed(3)}–${end.toFixed(3)} s · ${t("formantLevelMatched")}`;
+  }
+  function tickFormant() {
+    formantPlaybackUI();
+    if (formantWantPlay) formantAnimation = requestAnimationFrame(tickFormant);
+  }
+  async function startFormantPlayback() {
+    const request = formantToken;
+    try {
+      await $("formantPlayer").play();
+      if (request !== formantToken || !formantWantPlay) return;
+      cancelAnimationFrame(formantAnimation);
+      tickFormant();
+    } catch (e) {
+      if (request === formantToken && e.name !== "AbortError") {
+        stopFormant();
+        status("playbackError", true);
+      }
+    }
+  }
+  function selectFormantMode(next, keep = true) {
+    if (!formantAudio) return;
+    const player = $("formantPlayer"),
+      playing = formantWantPlay;
+    const oldCenter =
+      formantMode === "a" ? formantAudio.centerA : formantAudio.centerB;
+    const delta =
+      (player.currentTime - oldCenter) * (formantMode === "a" ? 1 : ratio);
+    const newCenter =
+      next === "a" ? formantAudio.centerA : formantAudio.centerB;
+    const request = ++formantToken;
+    player.pause();
+    formantMode = next;
+    player.src = urls[next === "a" ? "formantA" : "formantB"];
+    player.onloadedmetadata = () => {
+      if (request !== formantToken) return;
+      player.currentTime = keep
+        ? Math.max(
+            0,
+            Math.min(
+              player.duration - 0.001,
+              newCenter + delta / (next === "a" ? 1 : ratio),
+            ),
+          )
+        : 0;
+      if (formantWantPlay) startFormantPlayback();
+      formantPlaybackUI();
+    };
+    player.load();
+    formantWantPlay = playing;
+    formantPlaybackUI();
+  }
+  $("formantPlay").onclick = () => {
+    if (!formantAudio || busy) return;
+    if (formantWantPlay) {
+      stopFormant();
+      return;
+    }
+    $("player").pause();
+    stopFull();
+    if ($("formantPlayer").ended) $("formantPlayer").currentTime = 0;
+    formantWantPlay = true;
+    formantPlaybackUI();
+    startFormantPlayback();
+  };
+  $("formantA").onclick = () => selectFormantMode("a");
+  $("formantB").onclick = () => selectFormantMode("b");
+  $("formantSeek").oninput = () => {
+    if ($("formantPlayer").readyState)
+      $("formantPlayer").currentTime = Number($("formantSeek").value);
+    formantPlaybackUI();
+  };
+  $("formantPlayer").onended = stopFormant;
+  $("formantPlayer").onerror = () => {
+    if (formantAudio) {
+      stopFormant();
+      status("playbackError", true);
+    }
+  };
+
+  function wsState() {
+    $("wsState").textContent = t(
+      Math.abs(ratio - 1) < 1e-8 ? "wsBypass" : "wsActive",
+    );
+  }
+  function analysisUI() {
+    const spectrumText = !spectrumData
+      ? t("spectrumEmpty")
+      : spectrumData.unavailable
+        ? t(spectrumData.unavailable)
+        : `${t("spectrumRange")}: ${time(spectrumData.start)}–${time(spectrumData.start + spectrumData.duration)} · ${t("spectrumSampling")}`;
+    $("spectrumInfo").textContent = spectrumText;
+    $("formantInfo").textContent = formantDescription();
+    $("formantInfo").dataset.searchStart = formantData?.searchStart ?? "";
+    $("formantInfo").dataset.candidateIndex = formantData?.candidateIndex ?? "";
+    $("analyzeFormant").textContent = t(
+      $("formantManual").checked ? "analyzeFormantManual" : "analyzeFormant",
+    );
+    $("formantPosition").setAttribute("aria-label", t("formantPosition"));
+    $("formantSeek").setAttribute("aria-label", t("formantSeek"));
+    formantPlaybackUI();
+    for (const [id, data, label] of [
+      ["spectrumCanvas", spectrumData, "spectrumTitle"],
+      ["formantCanvas", formantData, "formantTitle"],
+    ]) {
+      $(id).setAttribute("aria-label", t(label));
+      $(id).dataset.state = data
+        ? data.unavailable
+          ? "unavailable"
+          : "ready"
+        : "empty";
+      drawSpectrum($(id), data);
+    }
+  }
+  function drawSpectrum(canvas, data) {
+    const width = canvas.clientWidth;
+    if (!width) return;
+    const height = canvas.clientHeight,
+      dpr = window.devicePixelRatio || 1;
+    canvas.width = Math.round(width * dpr);
+    canvas.height = Math.round(height * dpr);
+    const ctx = canvas.getContext("2d");
+    ctx.scale(dpr, dpr);
+    const left = 40,
+      right = width - 14,
+      top = 24,
+      bottom = height - 32;
+    const max =
+      data?.frequencies?.at(-1) ||
+      (canvas.id === "formantCanvas" ? 6000 : 20000);
+    const x = (f) =>
+      left + (Math.log(f / 40) / Math.log(max / 40)) * (right - left);
+    const y = (v) =>
+      top + (Math.min(60, Math.max(0, -v)) / 60) * (bottom - top);
+    ctx.font = '10px "Segoe UI", sans-serif';
+    ctx.fillStyle = "#9cacc0";
+    ctx.strokeStyle = "#2a394b";
+    ctx.lineWidth = 1;
+    ctx.fillText(t("relativeDb"), 7, 13);
+    for (const v of [0, -20, -40, -60]) {
+      ctx.beginPath();
+      ctx.moveTo(left, y(v));
+      ctx.lineTo(right, y(v));
+      ctx.stroke();
+      ctx.fillText(String(v), 9, y(v) + 3);
+    }
+    let lastX = -100;
+    for (const f of [100, 200, 500, 1000, 2000, 5000, 10000, 20000]) {
+      if (f > max || x(f) - lastX < 32) continue;
+      ctx.beginPath();
+      ctx.moveTo(x(f), top);
+      ctx.lineTo(x(f), bottom);
+      ctx.stroke();
+      ctx.textAlign = "center";
+      ctx.fillText(f >= 1000 ? f / 1000 + "k" : String(f), x(f), bottom + 14);
+      lastX = x(f);
+    }
+    ctx.textAlign = "right";
+    ctx.fillText(t("frequencyHz"), right, height - 3);
+    ctx.textAlign = "left";
+    if (!data || data.unavailable) return;
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(left, top, right - left, bottom - top);
+    ctx.clip();
+    for (const [values, color, line] of [
+      [data.before, "#abb5c6", 2.5],
+      [data.after, "#59d5d8", 1.5],
+    ]) {
+      ctx.strokeStyle = color;
+      ctx.lineWidth = line;
+      ctx.beginPath();
+      values.forEach((v, i) =>
+        i
+          ? ctx.lineTo(x(data.frequencies[i]), y(v))
+          : ctx.moveTo(x(data.frequencies[i]), y(v)),
+      );
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+  const analysisObserver = new ResizeObserver(() => analysisUI());
+  analysisObserver.observe($("spectrumCanvas"));
+  analysisObserver.observe($("formantCanvas"));
+  $("wsDetails").addEventListener("toggle", analysisUI);
+  $("previewDetails").addEventListener("toggle", analysisUI);
+
   translate();
   locks();
   draw();

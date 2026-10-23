@@ -2,10 +2,10 @@
 // Explicit publication allowlist. Never recursively copy this workspace.
 export const releaseFiles = [
   '.gitignore', '.gitattributes', '.nojekyll', 'LICENSE', 'README.md', 'THIRD_PARTY_NOTICES.md',
-  'SOURCES.md', 'docs/VALIDATION.md', 'index.html', 'package.json', 'package-lock.json',
+  'SOURCES.md', 'USER_GUIDE.md', 'USER_GUIDE.html', 'docs/VALIDATION.md', 'index.html', 'package.json', 'package-lock.json',
   'build.mjs', 'package.mjs', 'release-files.mjs', 'test-release.mjs',
-  'test.mjs', 'test-dsp.mjs', 'tests/fixtures/wsola-v1.2.js',
-  'src/index.html', 'src/style.css', 'src/app.js', 'src/engine.js',
+  'test.mjs', 'test-dsp.mjs', 'test-wsola.mjs', 'tests/fixtures/wsola-v1.2.js',
+  'src/index.html', 'src/style.css', 'src/app.js', 'src/engine.js', 'src/analysis.js', 'src/formant.js', 'test-formant-search.mjs', 'test-analysis.mjs',
   'vendor/NOTICE.txt', 'vendor/LICENSE-MIT.md', 'vendor/LAME-NOTICE.txt',
   'vendor/COPYING', 'vendor/COPYING.LESSER', 'vendor/browser-mp3.js',
   'vendor/mp3-async.ts', 'vendor/rebuild.mjs',
@@ -30,6 +30,8 @@ export const releaseFiles = [
 // The small application-specific wrapper changes and relinking script remain.
 export const runtimeFiles = [
   ['index.html', 'index.html'],
+  ['USER_GUIDE.md', 'USER_GUIDE.md'],
+  ['USER_GUIDE.html', 'USER_GUIDE.html'],
   ['release/README.md', 'README.md'],
   ['release/SOURCES.md', 'SOURCES.md'],
   ['LICENSE', 'LICENSE'],

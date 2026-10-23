@@ -19,7 +19,9 @@ let cancelled = false,
   toneKey = "",
   working = null,
   rendered = null,
-  mp3Abort = null;
+  mp3Abort = null,
+  previewAnalysis = null,
+  formantSearchState = null;
 const processingKey = (c) => JSON.stringify([c.ratio, c.level, c.ws, c.eq]);
 function check() {
   if (cancelled) throw Error("cancelled");
@@ -317,9 +319,17 @@ function levelCurve(env) {
   });
 }
 
-// The matching score, search order, shared stereo alignment and crossfade are
-// the Narration Tempo v1.2 WSOLA. Only PCM access and the output sink differ.
-async function stretch(src, ratio, ws, write, phase = "measure") {
+// WSOLA with shared stereo alignment, a multi-candidate full-resolution search,
+// and an end-anchored final segment. Output length is exact; reads stay bounded.
+async function stretch(
+  src,
+  ratio,
+  ws,
+  write,
+  phase = "measure",
+  alignment = null,
+) {
+  alignment?.add(0, 0, 0);
   const target = Math.round(src.length / ratio),
     sr = src.sampleRate,
     ch = src.channels;
@@ -351,19 +361,70 @@ async function stretch(src, ratio, ws, write, phase = "measure") {
         check();
       }
     }
+  } else if (Math.min(src.length, target) < 4) {
+    // Sub-four-sample clips have no usable overlap. Interpolate their endpoints
+    // rather than reading outside the clip or losing its final sample.
+    const input = await src.read(0, src.length);
+    const tiny = input.map(() => new Float32Array(target));
+    for (let i = 0; i < target; i++) {
+      const at =
+        target === 1 ? src.length - 1 : (i * (src.length - 1)) / (target - 1);
+      const left = Math.floor(at),
+        right = Math.min(src.length - 1, left + 1);
+      for (let c = 0; c < ch; c++)
+        tiny[c][i] =
+          input[c][left] * (1 - (at - left)) + input[c][right] * (at - left);
+    }
+    await emit(tiny, 0, target);
   } else {
-    const sequence = Math.max(128, Math.round((sr * ws.sequenceMs) / 1000)),
-      overlap = Math.max(32, Math.round((sr * ws.overlapMs) / 1000)),
+    // Leave room for both the initial segment and a complete final crossfade,
+    // even when a clip is shorter than the configured sequence length.
+    const sequence = Math.min(
+        Math.max(128, Math.round((sr * ws.sequenceMs) / 1000)),
+        Math.floor(Math.min(src.length, target) / 2),
+      ),
+      overlap = Math.min(
+        Math.max(32, Math.round((sr * ws.overlapMs) / 1000)),
+        Math.floor((sequence - 1) / 2) || 1,
+      ),
       hop = sequence - overlap,
       seek = Math.max(24, Math.round((sr * ws.seekMs) / 1000));
     let first = await src.read(0, sequence),
       done = Math.min(target, hop);
     await emit(first, 0, done);
+    const finalReserve = sequence + overlap,
+      finalStart = Math.max(
+        hop,
+        Math.ceil((target - finalReserve) / hop) * hop,
+      ),
+      finalLength = target - finalStart;
     const prev = first.map((a) => a.slice(hop, hop + overlap)),
-      maxBase = Math.max(0, src.length - sequence),
+      // Do not let preceding joins consume the terminal tail and repeat it in
+      // the final crossfade. Reserve at least one untouched overlap at the end.
+      maxBase = Math.max(
+        0,
+        Math.min(src.length - sequence, src.length - finalLength - hop),
+      ),
       fade = Array.from({ length: ch }, () => new Float32Array(overlap));
     for (let k = 1; done < target; k++) {
       check();
+      const remaining = target - done;
+      if (remaining <= finalReserve) {
+        // Anchor the last segment to the actual input end. Earlier regular hops
+        // leave more than two overlaps here, so the tail after the crossfade is
+        // copied at unity gain, with no extra output frames and no repeated tail.
+        alignment?.add(done, src.length - remaining, overlap);
+        const tail = await src.read(src.length - remaining, remaining);
+        for (let c = 0; c < ch; c++)
+          for (let j = 0; j < overlap; j++) {
+            const t = (j + 0.5) / overlap;
+            fade[c][j] = prev[c][j] * (1 - t) + tail[c][j] * t;
+          }
+        await emit(fade, 0, overlap);
+        await emit(tail, overlap, remaining - overlap);
+        done = target;
+        break;
+      }
       const nominal = clamp(Math.round(k * hop * ratio), 0, maxBase),
         min = Math.max(0, nominal - seek),
         max = Math.min(maxBase, nominal + seek);
@@ -374,55 +435,91 @@ async function stretch(src, ratio, ws, write, phase = "measure") {
           energy = 0;
         for (let c = 0; c < ch; c++) {
           let e = 0;
-          for (let j = 0; j < overlap; j += ws.analysisStep)
-            e += prev[c][j] * prev[c][j];
+          for (let j = 0; j < overlap; j++) e += prev[c][j] * prev[c][j];
           if (e > energy) {
             energy = e;
             refCh = c;
           }
         }
-        if (energy > 1e-6) {
+        // Keep the default silence gate independent of coarse comparison spacing.
+        if (energy > 8e-6) {
           const ref = prev[refCh],
             a = segment[refCh];
-          const score = (base) => {
+          let coarseEnergy = 0;
+          for (let j = 0; j < overlap; j += ws.analysisStep)
+            coarseEnergy += ref[j] * ref[j];
+          // A sparse reference can miss every nonzero sample. Fall back to the
+          // full reference in that case instead of treating real audio as silence.
+          const coarseStep = coarseEnergy > 1e-10 ? ws.analysisStep : 1;
+          if (coarseStep === 1) coarseEnergy = energy;
+          const score = (base, step, referenceEnergy) => {
             let dot = 0,
               den = 0;
-            for (let j = 0; j < overlap; j += ws.analysisStep) {
-              const b = a[base - min + j];
-              dot += ref[j] * b;
-              den += b * b;
+            for (let j = 0; j < overlap; j += step) {
+              const value = a[base - min + j];
+              dot += ref[j] * value;
+              den += value * value;
             }
             return den < 1e-10
               ? -2
-              : dot / Math.sqrt(den * energy) -
+              : dot / Math.sqrt(den * referenceEnergy) -
                   0.025 * ((base - nominal) / seek) ** 2;
           };
-          let bestScore = -Infinity;
-          for (let pos = min; pos <= max; pos += ws.searchStride) {
-            const q = score(pos);
-            if (q > bestScore) {
-              bestScore = q;
-              best = pos;
-            }
+          const candidates = [];
+          for (let pos = min; pos <= max; pos += ws.searchStride)
+            candidates.push({
+              pos,
+              score: score(pos, coarseStep, coarseEnergy),
+            });
+          if ((max - min) % ws.searchStride)
+            candidates.push({
+              pos: max,
+              score: score(max, coarseStep, coarseEnergy),
+            });
+          candidates.sort(
+            (a, b) =>
+              b.score - a.score ||
+              Math.abs(a.pos - nominal) - Math.abs(b.pos - nominal) ||
+              a.pos - b.pos,
+          );
+          // Keep separate neighbourhoods, not several adjacent points belonging
+          // to a single peak. Include the nominal position as a safe baseline.
+          const seeds = [];
+          for (const candidate of candidates) {
+            if (
+              seeds.every(
+                (pos) => Math.abs(pos - candidate.pos) > ws.searchStride * 2,
+              )
+            )
+              seeds.push(candidate.pos);
+            if (seeds.length === 6) break;
           }
-          const q = score(max);
-          if (q > bestScore) best = max;
-          let fine = -Infinity,
-            fineBest = best;
-          for (
-            let pos = Math.max(min, best - ws.searchStride);
-            pos <= Math.min(max, best + ws.searchStride);
-            pos++
-          ) {
-            const q = score(pos);
-            if (q > fine) {
-              fine = q;
-              fineBest = pos;
+          seeds.push(nominal);
+          let fine = score(nominal, 1, energy),
+            fineBest = nominal;
+          const seen = new Set([nominal]);
+          for (const seed of seeds)
+            for (
+              let pos = Math.max(min, seed - ws.searchStride);
+              pos <= Math.min(max, seed + ws.searchStride);
+              pos++
+            ) {
+              if (seen.has(pos)) continue;
+              seen.add(pos);
+              const q = score(pos, 1, energy);
+              if (
+                q > fine ||
+                (q === fine &&
+                  Math.abs(pos - nominal) < Math.abs(fineBest - nominal))
+              ) {
+                fine = q;
+                fineBest = pos;
+              }
             }
-          }
           best = fine > 0.05 ? fineBest : nominal;
         }
       }
+      alignment?.add(done, best, overlap);
       const b = best - min,
         fadeN = Math.min(overlap, target - done);
       for (let c = 0; c < ch; c++)
@@ -714,58 +811,47 @@ async function encodeExcerpt(src, start, length, report) {
   }
   return writer.finish();
 }
-async function preview(c, seconds) {
-  validate(c);
-  const sr = source.sampleRate,
-    ch = source.channels,
-    start = clamp(
-      Math.round((Number(seconds) || 0) * sr),
-      0,
-      source.length - 1,
-    ),
-    length = Math.min(source.length - start, sr * 30);
-  source.setGain(null);
-  const original = await encodeExcerpt(source, start, length, (v) =>
-    progress("preview", v * 0.15),
+function blobSource(blob, sr, ch) {
+  return new AudioSource(
+    {
+      sampleRate: sr,
+      channels: ch,
+      length: (blob.size - 44) / (ch * 4),
+      bits: 32,
+      format: 3,
+      offset: 44,
+      align: ch * 4,
+    },
+    blob,
+    null,
   );
-  // A completed conversion is the authoritative reference. Only read its clip.
-  if (rendered?.key === processingKey(c)) {
-    const begin = Math.round(start / c.ratio),
-      end = Math.min(rendered.length, Math.round((start + length) / c.ratio));
-    const processed = await encodeExcerpt(rendered, begin, end - begin, (v) =>
-      progress("preview", 0.15 + v * 0.85),
-    );
-    check();
-    postMessage({
-      type: "previewed",
-      a: original,
-      b: processed,
-      reference: "rendered",
-    });
-    return;
-  }
-  // The twelve-second handles cover the leveler's smoothing neighbourhood and
-  // let EQ/WSOLA settle. Neither analysis nor tempo processing visits the prefix.
+}
+async function localClip(c, start, length, report = progress) {
+  const sr = source.sampleRate,
+    ch = source.channels;
   const begin = Math.max(0, start - sr * 12),
-    end = Math.min(source.length, start + length + sr * 12),
-    local = new ToneSource(new AudioWindow(source, begin, end - begin), c.eq);
+    end = Math.min(source.length, start + length + sr * 12);
+  const local = new ToneSource(
+    new AudioWindow(source, begin, end - begin),
+    c.eq,
+  );
   if (c.level) {
     if (local.coefficients.length) {
       const analysis = await analyze(local, (v) =>
-        progress("preview", 0.15 + v * 0.3),
+        report("preview", 0.15 + v * 0.3),
       );
       local.setGain(levelCurve(analysis.env));
     } else {
-      // Reuse the unfiltered curve computed on load, at its original position.
       local.gainOffset = begin;
       local.setGain(curve);
     }
   }
   const clipBegin = Math.round((start - begin) / c.ratio),
     frames = Math.round(length / c.ratio),
-    clipEnd = clipBegin + frames,
-    pcm = Array.from({ length: ch }, () => new Float32Array(frames)),
-    meter = new Meter(sr, ch, frames),
+    clipEnd = clipBegin + frames;
+  const pcm = Array.from({ length: ch }, () => new Float32Array(frames)),
+    meter = new Meter(sr, ch, frames);
+  const alignment = new StretchAlignment(),
     stop = {};
   try {
     await stretch(
@@ -776,40 +862,94 @@ async function preview(c, seconds) {
         const s = Math.max(p, clipBegin),
           e = Math.min(p + n, clipEnd);
         if (e > s) {
-          const part = a.map((channel, c) => {
+          const part = a.map((channel, index) => {
             const slice = channel.subarray(s - p, e - p);
-            pcm[c].set(slice, s - clipBegin);
+            pcm[index].set(slice, s - clipBegin);
             return slice;
           });
           meter.push(part, s - clipBegin, e - s);
         }
-        progress("preview", 0.45 + 0.5 * Math.min(1, (p + n) / clipEnd));
+        report("preview", 0.45 + 0.45 * Math.min(1, (p + n) / clipEnd));
         if (p + n >= clipEnd) throw stop;
       },
       null,
+      alignment,
     );
   } catch (e) {
     if (e !== stop) throw e;
   }
   check();
-  const stats = masteringStats(meter.result()),
-    writer = new Encoder(frames, sr, ch, 32, amp(stats.gainDb));
-  for (let p = 0; p < frames; p += 16384) {
-    writer.push(pcm, p, Math.min(16384, frames - p));
-    if (p % 131072 === 0) {
-      await pause();
-      check();
+  return {
+    local,
+    pcm,
+    stats: masteringStats(meter.result()),
+    alignment,
+    begin,
+    clipBegin,
+    frames,
+    start,
+    length,
+    key: processingKey(c),
+  };
+}
+async function preview(c, seconds) {
+  validate(c);
+  const sr = source.sampleRate,
+    ch = source.channels;
+  const start = clamp(
+      Math.round((Number(seconds) || 0) * sr),
+      0,
+      source.length - 1,
+    ),
+    length = Math.min(source.length - start, sr * 30);
+  source.setGain(null);
+  previewAnalysis = null;
+  const original = await encodeExcerpt(source, start, length, (v) =>
+    progress("preview", v * 0.15),
+  );
+  let processed, reference;
+  if (rendered?.key === processingKey(c)) {
+    const begin = Math.round(start / c.ratio),
+      end = Math.min(rendered.length, Math.round((start + length) / c.ratio));
+    processed = await encodeExcerpt(rendered, begin, end - begin, (v) =>
+      progress("preview", 0.15 + v * 0.75),
+    );
+    reference = "rendered";
+  } else {
+    const clip = await localClip(c, start, length);
+    const writer = new Encoder(clip.frames, sr, ch, 32, amp(clip.stats.gainDb));
+    for (let p = 0; p < clip.frames; p += 16384) {
+      writer.push(clip.pcm, p, Math.min(16384, clip.frames - p));
+      if (p % 131072 === 0) {
+        await pause();
+        check();
+      }
     }
+    processed = writer.finish();
+    // Keep only the bounded excerpt and its pre-WSOLA source/checkpoints.
+    previewAnalysis = {
+      ...clip,
+      pcm: null,
+      after: blobSource(processed, sr, ch),
+    };
+    reference = "estimate";
   }
-  progress("preview", 1);
+  progress("spectrum", 0);
+  const spectrum = await compareAverage(
+    blobSource(original, sr, ch),
+    blobSource(processed, sr, ch),
+  );
+  check();
   postMessage({
     type: "previewed",
     a: original,
-    b: writer.finish(),
-    reference: "estimate",
+    b: processed,
+    reference,
+    spectrum,
+    start: start / sr,
+    duration: length / sr,
   });
 }
-
 // MP3 supports rates through 48 kHz. Other rates use a bounded, windowed-sinc
 // reader; the retained WAV/master remains at the original sample rate.
 function mp3Source(src) {
@@ -867,7 +1007,7 @@ async function run(message) {
       source = new AudioSource(message.meta, message.file, message.pcm);
       cached = null;
       curve = null;
-      tone = working = rendered = null;
+      tone = working = rendered = previewAnalysis = formantSearchState = null;
       const result = await analyze(source);
       check();
       curve = levelCurve(result.env);
@@ -876,7 +1016,7 @@ async function run(message) {
     }
     if (!source || !curve) throw Error("notLoaded");
     if (type === "release") {
-      rendered = null;
+      rendered = previewAnalysis = formantSearchState = null;
       return;
     }
     if (type === "export") {
@@ -920,11 +1060,20 @@ async function run(message) {
       await preview(c, message.start);
       return;
     }
+    if (type === "formantCandidate") {
+      await nextFormantCandidate(c);
+      return;
+    }
+    if (type === "formant") {
+      await formantAnalysis(c, message.start);
+      return;
+    }
     const stats = await prepare(c);
     const frames = Math.round(source.length / c.ratio),
       gain = amp(stats.gainDb);
     if (type === "render") {
       rendered = null;
+      const alignment = new StretchAlignment();
       const encoder = new Encoder(
         frames,
         source.sampleRate,
@@ -941,6 +1090,7 @@ async function run(message) {
           encoder.push(a, 0, n);
         },
         "render",
+        alignment,
       );
       check();
       const blob = encoder.finish(),
@@ -955,6 +1105,7 @@ async function run(message) {
         };
       rendered = new AudioSource(meta, blob, null);
       rendered.key = processingKey(c);
+      rendered.alignment = alignment;
       postMessage({ type: "rendered", blob, meta, stats });
     }
   } catch (e) {

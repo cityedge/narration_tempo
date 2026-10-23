@@ -2,6 +2,8 @@
 
 長尺ナレーションの音量差を整え、声の高さを保って速度を変え、WAV／MP3として保存するローカルアプリです。
 
+詳しい操作・各設定・EQ・制限・トラブル対処は [ユーザーマニュアル](USER_GUIDE.html) を参照してください（[Markdown版](USER_GUIDE.md)）。
+
 ## 起動と使い方
 
 ZIP全体を展開し、`index.html` をChromeで開きます。
@@ -37,3 +39,5 @@ Application version: **__APP_VERSION__**. The application is MIT licensed; the e
 The complete upstream source is available from Browser Media I/O **v0.5.0** Releases. See `SOURCES.md` for the exact
 download, checksum and rebuild steps. `source-support/` contains only application-specific wrapper changes and
 the relinking script; it is not needed to run the app. Preserve the documents and support files when redistributing.
+
+30秒プレビューに平均スペクトル比較を追加しました。WSOLA詳細設定は3項目になり、内部のフォルマント分析は再生位置から先の最大10秒を探索し、抽出候補の中で差が大きい発声を表示します。横の「試聴」で周囲の音を前後比較でき、「次の候補」「次の10秒を探索」で確認を進められます。手順と表示の意味はUSER_GUIDE.htmlの9〜10節を参照してください。
